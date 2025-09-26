@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lorenz Attractor — Strange Attractor</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #f5f5f5; }
-        h1 { text-align: center; color: #333; }
+        :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 2rem; background: var(--bg); }
+        h1 { text-align: center; color: #333; margin-bottom: .25rem; }
         p { color: #444; line-height: 1.6; }
-        .back { display: inline-block; margin-top: 20px; color: #0366d6; text-decoration: none; font-weight: bold; }
+        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+        label { font-size: .9rem; color: var(--muted); }
+        input[type="number"] { width: 90px; }
+        input[type="range"] { width: 220px; }
+        .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .button.secondary { background: #6b7280; }
+        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+        .back { display: inline-block; margin-top: 18px; color: var(--accent); text-decoration: none; font-weight: bold; }
     </style>
-    <!-- Coming soon: 3D trajectory visualization of the Lorenz system.
-         dx/dt = sigma(y - x), dy/dt = x(rho - z) - y, dz/dt = xy - beta z. -->
 </head>
 <body>
     <h1>Lorenz Attractor</h1>
@@ -21,8 +28,120 @@
         conditions lead to dramatically different trajectories — the hallmark of
         chaos.
     </p>
-    <p><strong>Status:</strong> Coming soon — 3D trajectory and Poincaré section.</p>
+
+    <div class="panel">
+        <div class="controls">
+            <label>σ: <input id="sigma" type="number" step="0.1" value="10"/></label>
+            <label>ρ: <input id="rho" type="number" step="0.1" value="28"/></label>
+            <label>β: <input id="beta" type="number" step="0.01" value="2.6667"/></label>
+            <label>dt: <input id="dt" type="number" step="0.0005" value="0.005"/></label>
+            <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="5"/></label>
+            <button class="button" id="toggle">Pause</button>
+            <button class="button secondary" id="reset">Reset</button>
+            <button class="button secondary" id="clear">Clear</button>
+        </div>
+        <canvas id="lorenz" width="900" height="600"></canvas>
+    </div>
+
     <a class="back" href="../index.html">← Back to Introduction</a>
+
+    <script>
+    function rk4Lorenz(state, params, dt){
+        const f = (s)=>{
+            const [x,y,z] = s; const {sigma, rho, beta} = params;
+            return [ sigma*(y-x), x*(rho - z) - y, x*y - beta*z ];
+        };
+        const add = (a,b,scale=1)=> a.map((v,i)=> v + scale*b[i]);
+        const mul = (a,scale)=> a.map(v=> v*scale);
+        const k1 = f(state);
+        const k2 = f(add(state, mul(k1, dt/2)));
+        const k3 = f(add(state, mul(k2, dt/2)));
+        const k4 = f(add(state, mul(k3, dt)));
+        const incr = [0,1,2].map(i => (k1[i] + 2*k2[i] + 2*k3[i] + k4[i]) * dt/6);
+        return add(state, incr);
+    }
+
+    function makeProjector(width, height){
+        let angle = 0;
+        const centerX = width/2, centerY = height/2;
+        const scale = 10; // visual scale
+        return {
+            step(){ angle += 0.003; },
+            project([x,y,z]){
+                // rotate around Z then X for a simple 3D effect
+                const cosA = Math.cos(angle), sinA = Math.sin(angle);
+                let xr = x*cosA - y*sinA;
+                let yr = x*sinA + y*cosA;
+                let zr = z;
+                const cosB = Math.cos(angle*0.7), sinB = Math.sin(angle*0.7);
+                let yr2 = yr*cosB - zr*sinB;
+                let zr2 = yr*sinB + zr*cosB;
+                const px = centerX + xr*scale;
+                const py = centerY - (yr2)*scale;
+                const alpha = Math.max(0.1, Math.min(1, 0.2 + (zr2+30)/60));
+                return {x:px, y:py, a:alpha};
+            }
+        };
+    }
+
+    (function(){
+        const canvas = document.getElementById('lorenz');
+        const ctx = canvas.getContext('2d');
+        let running = true;
+        let state = [0.01, 0, 0];
+        let params = { sigma: 10, rho: 28, beta: 8/3 };
+        const proj = makeProjector(canvas.width, canvas.height);
+
+        function readParams(){
+            params.sigma = parseFloat(document.getElementById('sigma').value);
+            params.rho = parseFloat(document.getElementById('rho').value);
+            params.beta = parseFloat(document.getElementById('beta').value);
+            dt = parseFloat(document.getElementById('dt').value);
+            speed = parseInt(document.getElementById('speed').value,10);
+        }
+
+        let dt = 0.005;
+        let speed = 5; // substeps per frame
+
+        function step(){
+            readParams();
+            if(running){
+                for(let i=0;i<speed;i++){
+                    const next = rk4Lorenz(state, params, dt);
+                    const p1 = proj.project(state);
+                    const p2 = proj.project(next);
+                    ctx.strokeStyle = `rgba(3,102,214,${p2.a})`;
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                    state = next;
+                    proj.step();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        // Controls
+        document.getElementById('toggle').addEventListener('click', (e)=>{
+            running = !running;
+            e.target.textContent = running ? 'Pause' : 'Resume';
+        });
+        document.getElementById('reset').addEventListener('click', ()=>{
+            state = [0.01, 0, 0];
+        });
+        document.getElementById('clear').addEventListener('click', ()=>{
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+        });
+
+        // kick off
+        step();
+    })();
+    </script>
+
+    <!-- Equations:
+         dx/dt = sigma (y - x)
+         dy/dt = x (rho - z) - y
+         dz/dt = x y - beta z -->
 </body>
 </html>
-

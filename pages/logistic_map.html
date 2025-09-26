@@ -5,24 +5,197 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Logistic Map — Cobweb & Bifurcation</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; background: #f5f5f5; }
-        h1 { text-align: center; color: #333; }
+        :root {
+            --bg: #f5f5f5;
+            --fg: #222;
+            --muted: #555;
+            --accent: #0366d6;
+        }
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 2rem; background: var(--bg); color: var(--fg); }
+        h1 { text-align: center; color: #333; margin-bottom: .25rem; }
         p { color: #444; line-height: 1.6; }
-        .back { display: inline-block; margin-top: 20px; color: #0366d6; text-decoration: none; font-weight: bold; }
+        .row { display: grid; grid-template-columns: 1fr; gap: 18px; }
+        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+        label { font-size: .9rem; color: var(--muted); }
+        input[type="range"] { width: 220px; }
+        input[type="number"] { width: 90px; }
+        .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .button.secondary { background: #6b7280; }
+        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+        .caption { font-size: .9rem; color: var(--muted); margin-top: 6px; }
+        .back { display: inline-block; margin-top: 18px; color: var(--accent); text-decoration: none; font-weight: bold; }
+        @media(min-width: 1000px){ .row { grid-template-columns: 1fr 1fr; } }
     </style>
-    <!-- Coming soon: interactive cobweb diagram and bifurcation plot
-         for x_{n+1} = r x_n (1 - x_n). -->
 </head>
 <body>
     <h1>Logistic Map</h1>
     <p>
-        The logistic map, x_{n+1} = r x_n (1 - x_n), is a canonical example from
+        The logistic map, x<sub>n+1</sub> = r x<sub>n</sub> (1 − x<sub>n</sub>), is a canonical example from
         Strogatz’s <em>Nonlinear Dynamics and Chaos</em> showing period-doubling and the
-        onset of chaos. We’ll add an interactive cobweb diagram and a bifurcation
-        diagram to explore how behavior changes with the parameter r.
+        onset of chaos. Tweak the parameter r and initial condition x₀ to see the
+        cobweb iterates and how long-term behavior changes.
     </p>
-    <p><strong>Status:</strong> Coming soon — interactive cobweb and bifurcation visualization.</p>
+
+    <div class="row">
+        <div class="panel">
+            <h3 style="margin:6px 0 8px 0">Cobweb Diagram</h3>
+            <div class="controls">
+                <label>r: <input id="r" type="range" min="2.5" max="4" step="0.001" value="3.5" /> <input id="rNum" type="number" min="2.5" max="4" step="0.001" value="3.5"/></label>
+                <label>x₀: <input id="x0" type="range" min="0" max="1" step="0.001" value="0.2" /> <input id="x0Num" type="number" min="0" max="1" step="0.001" value="0.2"/></label>
+                <label>Iter: <input id="iters" type="number" min="1" max="1000" step="1" value="60" /></label>
+                <button class="button" id="randomize">Randomize x₀</button>
+                <button class="button secondary" id="clearCobweb">Clear</button>
+            </div>
+            <canvas id="cobweb" width="480" height="480"></canvas>
+            <div class="caption">Unit square with y = rx(1 − x) and y = x. Cobweb shows successive iterates.</div>
+        </div>
+
+        <div class="panel">
+            <h3 style="margin:6px 0 8px 0">Bifurcation Diagram</h3>
+            <div class="controls">
+                <label>r min: <input id="rMin" type="number" min="2.5" max="4" step="0.001" value="2.5" /></label>
+                <label>r max: <input id="rMax" type="number" min="2.5" max="4" step="0.001" value="4" /></label>
+                <label>Samples: <input id="samples" type="number" min="200" max="4000" step="50" value="1000" /></label>
+                <label>Skip: <input id="skip" type="number" min="50" max="5000" step="50" value="300" /></label>
+                <label>Plot: <input id="plotN" type="number" min="50" max="4000" step="50" value="300" /></label>
+                <button class="button" id="drawBif">Redraw</button>
+            </div>
+            <canvas id="bif" width="480" height="480"></canvas>
+            <div class="caption">For each r, iterate, discard transients, and plot long-term x values.</div>
+        </div>
+    </div>
+
     <a class="back" href="../index.html">← Back to Introduction</a>
+
+    <script>
+    function logistic(x, r){ return r * x * (1 - x); }
+
+    function drawCobweb() {
+        const canvas = document.getElementById('cobweb');
+        const ctx = canvas.getContext('2d');
+        const r = parseFloat(document.getElementById('r').value);
+        const iters = parseInt(document.getElementById('iters').value, 10);
+        let x = parseFloat(document.getElementById('x0').value);
+
+        // Clear
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+
+        // Axes box
+        ctx.strokeStyle = '#999';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(40, 20, canvas.width-60, canvas.height-60);
+
+        // Helpers
+        const toX = v => 40 + v * (canvas.width - 60);
+        const toY = v => 20 + (1 - v) * (canvas.height - 60);
+
+        // y = x
+        ctx.strokeStyle = '#c0c0c0';
+        ctx.beginPath();
+        ctx.moveTo(toX(0), toY(0));
+        ctx.lineTo(toX(1), toY(1));
+        ctx.stroke();
+
+        // y = r x (1 - x)
+        ctx.strokeStyle = '#0366d6';
+        ctx.beginPath();
+        for(let i=0;i<=500;i++){
+            const xv = i/500;
+            const yv = Math.max(0, Math.min(1, logistic(xv, r)));
+            const px = toX(xv), py = toY(yv);
+            if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Cobweb iterations
+        ctx.strokeStyle = '#ef4444';
+        ctx.fillStyle = '#ef4444';
+        ctx.lineWidth = 1;
+        let xn = x;
+        // draw starting point
+        ctx.beginPath();
+        ctx.arc(toX(xn), toY(0), 2.5, 0, Math.PI*2);
+        ctx.fill();
+
+        for(let n=0;n<iters;n++){
+            const yn = logistic(xn, r);
+            // vertical: (xn, xn) -> (xn, yn) using y=x reflection
+            ctx.beginPath();
+            ctx.moveTo(toX(xn), toY(xn));
+            ctx.lineTo(toX(xn), toY(yn));
+            ctx.stroke();
+
+            // horizontal: (xn, yn) -> (yn, yn)
+            ctx.beginPath();
+            ctx.moveTo(toX(xn), toY(yn));
+            ctx.lineTo(toX(yn), toY(yn));
+            ctx.stroke();
+
+            xn = yn;
+            if(xn<0 || xn>1) break;
+        }
+    }
+
+    function drawBifurcation() {
+        const canvas = document.getElementById('bif');
+        const ctx = canvas.getContext('2d');
+        const rMin = parseFloat(document.getElementById('rMin').value);
+        const rMax = parseFloat(document.getElementById('rMax').value);
+        const samples = parseInt(document.getElementById('samples').value, 10);
+        const skip = parseInt(document.getElementById('skip').value, 10);
+        const plotN = parseInt(document.getElementById('plotN').value, 10);
+
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = '#111';
+
+        const toX = r => ( (r - rMin) / (rMax - rMin) ) * (canvas.width-40) + 20;
+        const toY = x => (1 - x) * (canvas.height-40) + 20;
+
+        const rStep = (rMax - rMin) / samples;
+        for(let i=0;i<=samples;i++){
+            const r = rMin + i * rStep;
+            let x = 0.5; // fixed seed for consistency
+            // transient
+            for(let t=0;t<skip;t++) x = logistic(x, r);
+            // plot
+            for(let t=0;t<plotN;t++){
+                x = logistic(x, r);
+                const px = toX(r);
+                const py = toY(x);
+                ctx.fillRect(px, py, 1, 1);
+            }
+        }
+    }
+
+    function bindControls(){
+        const r = document.getElementById('r');
+        const rNum = document.getElementById('rNum');
+        const x0 = document.getElementById('x0');
+        const x0Num = document.getElementById('x0Num');
+        const iters = document.getElementById('iters');
+        const sync = (a,b) => { a.addEventListener('input', ()=>{ b.value=a.value; drawCobweb(); }); };
+        sync(r, rNum); sync(rNum, r);
+        sync(x0, x0Num); sync(x0Num, x0);
+        iters.addEventListener('input', drawCobweb);
+        document.getElementById('randomize').addEventListener('click', ()=>{
+            const v = Math.random();
+            x0.value = v.toFixed(3); x0Num.value = v.toFixed(3); drawCobweb();
+        });
+        document.getElementById('clearCobweb').addEventListener('click', drawCobweb);
+        document.getElementById('drawBif').addEventListener('click', ()=>{
+            // Allow UI to breathe
+            requestAnimationFrame(drawBifurcation);
+        });
+    }
+
+    // Initial render
+    window.addEventListener('DOMContentLoaded', ()=>{
+        bindControls();
+        drawCobweb();
+        // Bifurcation can be expensive; defer slightly
+        setTimeout(drawBifurcation, 50);
+    });
+    </script>
 </body>
 </html>
-
