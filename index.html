@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos Animations</title>
+    <title>Chaos Simulations</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,6 +16,7 @@
         h1 {
             color: #333;
         }
+        p { color: #444; line-height: 1.6; }
         .button {
             display: inline-block;
             background-color: #0366d6;
@@ -23,19 +24,35 @@
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 4px;
-            margin-top: 20px;
+            margin: 10px 8px 0 8px;
             font-weight: bold;
             transition: background-color 0.3s ease;
         }
         .button:hover {
             background-color: #024ea0;
         }
+        .buttons { margin-top: 16px; }
+        .tagline { font-size: 1.1rem; }
     </style>
 </head>
 <body>
-    <h1>Chaos Animations</h1>
-    <p>Explore visualizations of chaotic systems and their numerical solutions.</p>
-    
-    <a href="pages/animation.html" class="button">Runge-Kutta Solution Animation</a>
+    <h1>Chaos Simulations</h1>
+    <p class="tagline">Explore nonlinear dynamics through interactive visuals and animations.</p>
+    <p>
+        This collection is inspired by Steven Strogatz's classic text
+        <em>Nonlinear Dynamics and Chaos</em> — a tour through fixed points,
+        bifurcations, limit cycles, and strange attractors. We’ll build and
+        extend a set of approachable simulations that reveal how simple rules
+        can generate wonderfully complex behaviors.
+    </p>
+
+    <h2>Simulations</h2>
+    <p>Start with the existing Runge–Kutta animation, then explore more systems we’ll be proving out next.</p>
+    <div class="buttons">
+        <a href="pages/animation.html" class="button">Runge–Kutta Solution Animation</a>
+        <a href="pages/logistic_map.html" class="button">Logistic Map: Cobweb & Bifurcation</a>
+        <a href="pages/lorenz.html" class="button">Lorenz Attractor: Strange Attractor</a>
+        <a href="pages/double_pendulum.html" class="button">Double Pendulum: Chaotic Motion</a>
+    </div>
 </body>
 </html>
