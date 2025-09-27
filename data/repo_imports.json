@@ -1,0 +1,33 @@
+{
+  "root": "/home/somebody/chaos",
+  "files": {
+    "functions/rk_method.py": [
+      "matplotlib",
+      "matplotlib",
+      "numpy"
+    ],
+    "functions/fsolve_approx.py": [
+      "matplotlib",
+      "numpy",
+      "scipy"
+    ],
+    "functions/plot_de_usking_rk.py": [
+      "matplotlib",
+      "numpy"
+    ]
+  },
+  "top_level_counts": [
+    [
+      "matplotlib",
+      4
+    ],
+    [
+      "numpy",
+      3
+    ],
+    [
+      "scipy",
+      1
+    ]
+  ]
+}
