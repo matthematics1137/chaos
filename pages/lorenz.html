@@ -110,7 +110,7 @@
         let running = true;
         let state = [0.01, 0, 0];
         let params = { sigma: 10, rho: 28, beta: 8/3 };
-        const proj = makeProjector(canvas.width, canvas.height);
+        let proj = makeProjector(canvas.width, canvas.height);
 
         function readParams(){
             params.sigma = parseFloat(document.getElementById('sigma').value);
@@ -156,6 +156,10 @@
             document.getElementById('speed').value = 5;
             state = [0.01, 0, 0];
             ctx.clearRect(0,0,canvas.width, canvas.height);
+            // Recreate projector to reset rotation
+            proj = makeProjector(canvas.width, canvas.height);
+            // Ensure running
+            running = true; document.getElementById('toggle').textContent = 'Pause';
         });
         document.getElementById('clear').addEventListener('click', ()=>{
             ctx.clearRect(0,0,canvas.width, canvas.height);

@@ -189,12 +189,21 @@
             e.target.textContent = running ? 'Pause' : 'Resume';
         });
         document.getElementById('reset').addEventListener('click', ()=>{
+            // Restore defaults
+            document.getElementById('th1').value = 120;
+            document.getElementById('th2').value = -10;
+            document.getElementById('om1').value = 0;
+            document.getElementById('om2').value = 0;
+            document.getElementById('dt').value = 0.005;
+            document.getElementById('speed').value = 5;
             state = getInitial();
             trail.length = 0;
             // Clear canvas background
             ctx.clearRect(0,0,canvas.width, canvas.height);
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0,0,canvas.width, canvas.height);
+            // Ensure running
+            running = true; document.getElementById('toggle').textContent = 'Pause';
         });
         document.getElementById('clear').addEventListener('click', ()=>{
             ctx.clearRect(0,0,canvas.width, canvas.height);
