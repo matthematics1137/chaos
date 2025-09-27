@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hopf Bifurcation — Brusselator</title>
+  <style>
+    :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); }
+    h1 { text-align: center; color: #333; margin-bottom: .25rem; }
+    p { color: #444; line-height: 1.6; }
+    .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
+    .main { grid-area: main; }
+    .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+    .note-top { grid-area: top; } .note-bottom { grid-area: bottom; } .note-left { grid-area: left; } .note-right { grid-area: right; }
+    @media(min-width: 1100px){ .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; } }
+    .panel { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:10px; }
+    label { font-size:.9rem; color:var(--muted); }
+    input[type="number"]{ width:90px; }
+    input[type="range"]{ width:220px; }
+    .button{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+    .button.secondary{ background:#6b7280; }
+    canvas { width: 100%; height: auto; background: radial-gradient(1200px 800px at 50% 0%, #ffffff, #f7fafc); border:1px solid #ddd; border-radius:6px; }
+    .back { display:inline-block; margin-top:18px; color:var(--accent); text-decoration:none; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>Hopf Bifurcation — Brusselator</h1>
+  <p>The Brusselator exhibits a Hopf bifurcation as B crosses 1 + A²: a stable fixed point loses stability and a limit cycle emerges.</p>
+
+  <div class="layout">
+    <div class="note-bubble note-top">Top notes — Hopf: complex pair crosses imaginary axis; cycle appears.</div>
+    <div class="note-bubble note-left">Side notes — nullclines y=B/x and y=((B+1)x − A)/x².</div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="controls">
+          <label>A: <input id="A" type="number" step="0.1" value="1.0"/></label>
+          <label>B: <input id="B" type="number" step="0.1" value="2.0"/></label>
+          <label>dt: <input id="dt" type="number" step="0.0005" value="0.01"/></label>
+          <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="8"/></label>
+          <label>Seeds: <select id="seeds"><option value="ring8" selected>Ring ×8</option><option value="grid4x3">Grid 4×3</option><option value="none">None</option></select></label>
+          <button class="button" id="toggle">Pause</button>
+          <button class="button secondary" id="reset">Reset</button>
+          <button class="button secondary" id="clear">Clear</button>
+        </div>
+        <canvas id="hopf" width="1000" height="700"></canvas>
+        <div style="font-size:.9rem;color:#666;margin-top:6px;">Brusselator: x' = A − (B+1)x + x²y, y' = Bx − x²y</div>
+        <p><a class="back" href="../index.html">← Back to Introduction</a></p>
+      </div>
+    </div>
+
+    <div class="note-bubble note-right">Side notes — mark B = 1 + A² as Hopf threshold.</div>
+    <div class="note-bubble note-bottom">Bottom notes — add references or derivation.</div>
+  </div>
+
+  <script>
+  function f_bruss([x,y], A, B){ return [ A - (B+1)*x + x*x*y, B*x - x*x*y ]; }
+  function rk4Step2(state, dt, f){
+    const add=(a,b,s=1)=>[a[0]+s*b[0], a[1]+s*b[1]]; const mul=(v,s)=>[v[0]*s,v[1]*s];
+    const k1=f(state), k2=f(add(state,mul(k1,dt/2))), k3=f(add(state,mul(k2,dt/2))), k4=f(add(state,mul(k3,dt)));
+    return add(state, [(k1[0]+2*k2[0]+2*k3[0]+k4[0])*dt/6,(k1[1]+2*k2[1]+2*k3[1]+k4[1])*dt/6]);
+  }
+  (function(){
+    const canvas = document.getElementById('hopf');
+    const ctx = canvas.getContext('2d');
+    let running = true; let dt=0.01, speed=8; let A=1.0, B=2.0;
+    let particles = [];
+    const scale = 6; // view box [-3,3] for both axes
+    function toCanvas([x,y]){ const xMin=-3,xMax=3,yMin=-3,yMax=3; const px=(x-xMin)/(xMax-xMin)*(canvas.width-60)+40; const py=(1-(y-yMin)/(yMax-yMin))*(canvas.height-60)+20; return [px,py]; }
+    function toState(px,py){ const xMin=-3,xMax=3,yMin=-3,yMax=3; const x=(px-40)/(canvas.width-60)*(xMax-xMin)+xMin; const y=(1-(py-20)/(canvas.height-60))*(yMax-yMin)+yMin; return [x,y]; }
+    function read(){ A=parseFloat(document.getElementById('A').value); B=parseFloat(document.getElementById('B').value); dt=parseFloat(document.getElementById('dt').value); speed=parseInt(document.getElementById('speed').value,10); }
+    function clearAll(){ ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.strokeRect(40,20,canvas.width-60,canvas.height-60); }
+    function drawNullclines(){
+      // y = ((B+1)x - A)/x^2 and y = B/x; avoid singularities
+      const xMin=-3,xMax=3; ctx.lineWidth=1.2;
+      ctx.strokeStyle='rgba(3,102,214,0.7)'; ctx.beginPath(); let first=true; for(let i=0;i<=800;i++){ const x=xMin+i*(xMax-xMin)/800; if(Math.abs(x)<0.05) { first=true; continue; } const y=(((B+1)*x - A)/(x*x)); if(y<-3||y>3) { first=true; continue; } const [px,py]=toCanvas([x,y]); if(first){ctx.moveTo(px,py); first=false;} else {ctx.lineTo(px,py);} } ctx.stroke();
+      ctx.strokeStyle='rgba(239,68,68,0.7)'; ctx.beginPath(); first=true; for(let i=0;i<=800;i++){ const x=xMin+i*(xMax-xMin)/800; if(Math.abs(x)<0.05) { first=true; continue; } const y=B/x; if(y<-3||y>3) { first=true; continue; } const [px,py]=toCanvas([x,y]); if(first){ctx.moveTo(px,py); first=false;} else {ctx.lineTo(px,py);} } ctx.stroke();
+    }
+    function reseed(kind){ particles=[]; const n=8; const r=1.0; if(kind==='none') return; if(kind==='ring8'){ for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; particles.push({p:[r*Math.cos(a), r*Math.sin(a)], hue:(i/n)*330}); } } else if(kind==='grid4x3'){ const xs=[-1.5,-0.5,0.5,1.5], ys=[-1,0,1]; let k=0; for(const x of xs){ for(const y of ys){ particles.push({p:[x,y], hue:(k++/12)*330}); } } } }
+    function step(){ read(); if(running && particles.length){ const f=(s)=>f_bruss(s,A,B); for(let sub=0;sub<speed;sub++){ for(const q of particles){ const next=rk4Step2(q.p,dt,f); const [x1,y1]=toCanvas(q.p), [x2,y2]=toCanvas(next); ctx.strokeStyle=`hsla(${q.hue|0},80%,45%,0.9)`; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); q.p=next; } } } ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.strokeRect(40,20,canvas.width-60,canvas.height-60); drawNullclines(); requestAnimationFrame(step); }
+    // events
+    document.getElementById('toggle').addEventListener('click',(e)=>{ running=!running; e.target.textContent=running?'Pause':'Resume'; });
+    document.getElementById('reset').addEventListener('click',()=>{ document.getElementById('A').value=1.0; document.getElementById('B').value=2.0; document.getElementById('dt').value=0.01; document.getElementById('speed').value=8; clearAll(); drawNullclines(); reseed(document.getElementById('seeds').value); running=true; document.getElementById('toggle').textContent='Pause'; });
+    document.getElementById('clear').addEventListener('click',()=>{ clearAll(); drawNullclines(); });
+    document.getElementById('seeds').addEventListener('change',()=>{ clearAll(); drawNullclines(); reseed(document.getElementById('seeds').value); });
+    canvas.addEventListener('click',(ev)=>{ const r=canvas.getBoundingClientRect(); const st=toState(ev.clientX-r.left, ev.clientY-r.top); particles.push({p:st, hue:Math.random()*330}); });
+    // init
+    clearAll(); drawNullclines(); reseed('ring8'); step();
+  })();
+  </script>
+</body>
+</html>
+
