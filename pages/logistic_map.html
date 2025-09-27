@@ -59,7 +59,8 @@
                 <label>Samples: <input id="samples" type="number" min="200" max="4000" step="50" value="1000" /></label>
                 <label>Skip: <input id="skip" type="number" min="50" max="5000" step="50" value="300" /></label>
                 <label>Plot: <input id="plotN" type="number" min="50" max="4000" step="50" value="300" /></label>
-                <button class="button" id="drawBif">Redraw</button>
+                <button class="button" id="bifPause">Pause</button>
+                <button class="button secondary" id="bifRestart">Restart</button>
             </div>
             <canvas id="bif" width="480" height="480"></canvas>
             <div class="caption">For each r, iterate, discard transients, and plot long-term x values.</div>
@@ -137,7 +138,10 @@
         }
     }
 
-    function drawBifurcation() {
+    // Progressive bifurcation renderer
+    let bifRunning = true;
+    let bifVersion = 0; // increments on restart to cancel prior runs
+    function startBifurcation(){
         const canvas = document.getElementById('bif');
         const ctx = canvas.getContext('2d');
         const rMin = parseFloat(document.getElementById('rMin').value);
@@ -146,6 +150,7 @@
         const skip = parseInt(document.getElementById('skip').value, 10);
         const plotN = parseInt(document.getElementById('plotN').value, 10);
 
+        const localVersion = ++bifVersion;
         ctx.clearRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = '#111';
 
@@ -153,19 +158,30 @@
         const toY = x => (1 - x) * (canvas.height-40) + 20;
 
         const rStep = (rMax - rMin) / samples;
-        for(let i=0;i<=samples;i++){
-            const r = rMin + i * rStep;
-            let x = 0.5; // fixed seed for consistency
-            // transient
-            for(let t=0;t<skip;t++) x = logistic(x, r);
-            // plot
-            for(let t=0;t<plotN;t++){
-                x = logistic(x, r);
-                const px = toX(r);
-                const py = toY(x);
-                ctx.fillRect(px, py, 1, 1);
+        let i = 0;
+        const chunk = Math.max(2, Math.floor(samples/120)); // ~120 frames
+
+        function frame(){
+            if(localVersion !== bifVersion) return; // canceled
+            if(!bifRunning){ requestAnimationFrame(frame); return; }
+
+            const iEnd = Math.min(samples, i + chunk);
+            for(; i <= iEnd; i++){
+                const r = rMin + i * rStep;
+                let x = 0.5;
+                for(let t=0;t<skip;t++) x = logistic(x, r);
+                for(let t=0;t<plotN;t++){
+                    x = logistic(x, r);
+                    const px = toX(r);
+                    const py = toY(x);
+                    ctx.fillRect(px, py, 1, 1);
+                }
+            }
+            if(i <= samples){
+                requestAnimationFrame(frame);
             }
         }
+        requestAnimationFrame(frame);
     }
 
     function bindControls(){
@@ -183,9 +199,22 @@
             x0.value = v.toFixed(3); x0Num.value = v.toFixed(3); drawCobweb();
         });
         document.getElementById('clearCobweb').addEventListener('click', drawCobweb);
-        document.getElementById('drawBif').addEventListener('click', ()=>{
-            // Allow UI to breathe
-            requestAnimationFrame(drawBifurcation);
+        // Bifurcation controls: live update with progressive draw
+        const onBifChange = () => startBifurcation();
+        ['rMin','rMax','samples','skip','plotN'].forEach(id => {
+            document.getElementById(id).addEventListener('input', onBifChange);
+            document.getElementById(id).addEventListener('change', onBifChange);
+        });
+        const pauseBtn = document.getElementById('bifPause');
+        const restartBtn = document.getElementById('bifRestart');
+        pauseBtn.addEventListener('click', ()=>{
+            bifRunning = !bifRunning;
+            pauseBtn.textContent = bifRunning ? 'Pause' : 'Resume';
+        });
+        restartBtn.addEventListener('click', ()=>{
+            bifRunning = true;
+            pauseBtn.textContent = 'Pause';
+            startBifurcation();
         });
     }
 
@@ -193,8 +222,8 @@
     window.addEventListener('DOMContentLoaded', ()=>{
         bindControls();
         drawCobweb();
-        // Bifurcation can be expensive; defer slightly
-        setTimeout(drawBifurcation, 50);
+        // Kick off progressive bifurcation draw
+        setTimeout(startBifurcation, 50);
     });
     </script>
 </body>
