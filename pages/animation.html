@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Runge-Kutta Animation</title>
+    <title>Runge–Kutta Playground</title>
     <style>
-        :root { --bg:#f5f5f5; --accent:#0366d6; }
-        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); text-align: center; }
-        h1 { color: #333; }
+        :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); }
+        h1 { color: #333; text-align: center; margin-bottom: .25rem; }
+        p { color: #444; line-height: 1.6; }
         .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
         .main { grid-area: main; }
-        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; text-align: left; }
+        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
         .note-top { grid-area: top; }
         .note-bottom { grid-area: bottom; }
         .note-left { grid-area: left; }
@@ -18,21 +19,222 @@
         @media(min-width: 1100px){
             .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
         }
-        img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid #ddd; }
+        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+        label { font-size: .9rem; color: var(--muted); }
+        select, input[type="number"] { padding: 4px 6px; }
+        input[type="number"] { width: 90px; }
+        input[type="range"] { width: 220px; }
+        .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .button.secondary { background: #6b7280; }
+        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
         a { color: var(--accent); font-weight: bold; text-decoration: none; }
+        .legend { font-size: .9rem; color: var(--muted); margin-top: 6px; }
     </style>
 </head>
 <body>
-    <h1>Runge-Kutta Solution Animation</h1>
+    <h1>Runge–Kutta Playground</h1>
     <div class="layout">
         <div class="note-bubble note-top">Top notes area — author explanations.</div>
-        <div class="note-bubble note-left">Side notes — derivation outline or method order notes.</div>
+        <div class="note-bubble note-left">Side notes — method comparison, stability, step size guidance.</div>
+
         <div class="main">
-            <img src="../animations/runge_kutta_solution_with_streamlines.gif" alt="Runge-Kutta Solution Animation">
-            <p><a href="../index.html">← Back to Introduction</a></p>
+            <div class="panel">
+                <div class="controls">
+                    <label>System:
+                        <select id="system">
+                            <option value="sho" selected>Harmonic Oscillator</option>
+                            <option value="vdp">Van der Pol</option>
+                            <option value="lv">Lotka–Volterra</option>
+                        </select>
+                    </label>
+                    <label>μ (VdP): <input id="mu" type="number" step="0.1" value="1.0"/></label>
+                    <label>dt: <input id="dt" type="number" step="0.0005" value="0.01"/></label>
+                    <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="6"/></label>
+                    <label>Scale: <input id="scale" type="range" min="1" max="12" step="1" value="6"/></label>
+                    <label>Method:
+                        <select id="method">
+                            <option value="rk4" selected>RK4</option>
+                            <option value="euler">Euler</option>
+                        </select>
+                    </label>
+                    <label><input id="compare" type="checkbox"/> Compare Euler</label>
+                    <label><input id="showField" type="checkbox" checked/> Show Vector Field</label>
+                    <button class="button" id="toggle">Pause</button>
+                    <button class="button secondary" id="reset">Reset</button>
+                    <button class="button secondary" id="clear">Clear</button>
+                </div>
+                <canvas id="rkplay" width="900" height="600"></canvas>
+                <div class="legend">Click in the canvas to set the initial state (x,y). Blue = RK4, Red = Euler (comparison).</div>
+                <p style="font-size:.95rem;color:#4a4a4a;margin-top:6px;">
+                    Systems: SHO (x' = y, y' = −x). Van der Pol (x' = y, y' = μ(1−x²)y − x). Lotka–Volterra (prey–predator) uses preset parameters.
+                </p>
+                <p><a href="../index.html">← Back to Introduction</a></p>
+            </div>
         </div>
-        <div class="note-bubble note-right">Side notes — stability, step size, or error control pointers.</div>
+
+        <div class="note-bubble note-right">Side notes — phase portraits, limit cycles, stiffness.</div>
         <div class="note-bubble note-bottom">Bottom notes — add summary or references.</div>
     </div>
+
+    <script>
+    // Derivative functions for systems in form [x', y'] = f([x,y])
+    function f_sho([x,y]){ return [ y, -x ]; }
+    function f_vdp([x,y], mu){ return [ y, mu*(1 - x*x)*y - x ]; }
+    function f_lv([x,y]){ const a=1.5, b=1.0, c=1.0, d=1.0; return [ a*x - b*x*y, -c*y + d*x*y ]; }
+
+    function eulerStep(state, dt, f){ const k = f(state); return [ state[0] + dt*k[0], state[1] + dt*k[1] ]; }
+    function rk4Step(state, dt, f){
+        const add = (a,b,scale=1)=> [a[0]+scale*b[0], a[1]+scale*b[1]];
+        const mul = (v,s)=> [v[0]*s, v[1]*s];
+        const k1 = f(state);
+        const k2 = f(add(state, mul(k1, dt/2)));
+        const k3 = f(add(state, mul(k2, dt/2)));
+        const k4 = f(add(state, mul(k3, dt)));
+        const incr = [ (k1[0]+2*k2[0]+2*k3[0]+k4[0]) * dt/6, (k1[1]+2*k2[1]+2*k3[1]+k4[1]) * dt/6 ];
+        return add(state, incr);
+    }
+
+    (function(){
+        const canvas = document.getElementById('rkplay');
+        const ctx = canvas.getContext('2d');
+        let running = true;
+        let dt = 0.01;
+        let speed = 6;
+        let scale = 6; // domain extent: [-scale/2, scale/2]
+        let method = 'rk4';
+        let compare = false;
+        let showField = true;
+        let system = 'sho';
+        let mu = 1.0;
+
+        // States
+        let stateRK = [0.5, 0.0];
+        let stateEU = [0.5, 0.0];
+        let haveInit = false;
+
+        function readControls(){
+            dt = parseFloat(document.getElementById('dt').value);
+            speed = parseInt(document.getElementById('speed').value,10);
+            scale = parseInt(document.getElementById('scale').value,10);
+            method = document.getElementById('method').value;
+            compare = document.getElementById('compare').checked;
+            showField = document.getElementById('showField').checked;
+            system = document.getElementById('system').value;
+            mu = parseFloat(document.getElementById('mu').value);
+        }
+
+        // Coordinate transforms between phase space and canvas
+        function toCanvas([x,y]){
+            const xMin=-scale/2, xMax=scale/2, yMin=-scale/2, yMax=scale/2;
+            const px = (x - xMin) / (xMax - xMin) * (canvas.width - 40) + 20;
+            const py = (1 - (y - yMin) / (yMax - yMin)) * (canvas.height - 40) + 20;
+            return [px, py];
+        }
+        function toState(px,py){
+            const xMin=-scale/2, xMax=scale/2, yMin=-scale/2, yMax=scale/2;
+            const x = (px - 20) / (canvas.width - 40) * (xMax - xMin) + xMin;
+            const y = (1 - (py - 20)/(canvas.height - 40)) * (yMax - yMin) + yMin;
+            return [x,y];
+        }
+
+        function pickSystem(){
+            if(system==='sho') return (s)=>f_sho(s);
+            if(system==='vdp') return (s)=>f_vdp(s, mu);
+            if(system==='lv')  return (s)=>f_lv(s);
+            return (s)=>f_sho(s);
+        }
+
+        function drawField(){
+            if(!showField) return;
+            const f = pickSystem();
+            const cols = 28, rows = 18;
+            for(let i=0;i<=cols;i++){
+                for(let j=0;j<=rows;j++){
+                    const xMin=-scale/2, xMax=scale/2, yMin=-scale/2, yMax=scale/2;
+                    const x = xMin + (i/cols)*(xMax-xMin);
+                    const y = yMin + (j/rows)*(yMax-yMin);
+                    const [vx, vy] = f([x,y]);
+                    const mag = Math.hypot(vx,vy) + 1e-9;
+                    const dir = [vx/mag, vy/mag];
+                    const [px, py] = toCanvas([x,y]);
+                    const len = 12 * Math.tanh(0.5*mag);
+                    // Color by magnitude
+                    const hue = Math.max(0, Math.min(240, 240 - 180*Math.tanh(0.3*mag)));
+                    ctx.strokeStyle = `hsl(${hue},70%,40%)`;
+                    // Arrow line
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px + dir[0]*len, py - dir[1]*len);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function clearAll(){
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            // Frame
+            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.strokeRect(20,20,canvas.width-40,canvas.height-40);
+        }
+
+        function step(){
+            readControls();
+            if(running && haveInit){
+                const f = pickSystem();
+                for(let i=0;i<speed;i++){
+                    const rkNext = rk4Step(stateRK, dt, f);
+                    const [p1x,p1y] = toCanvas(stateRK);
+                    const [p2x,p2y] = toCanvas(rkNext);
+                    ctx.strokeStyle = 'rgba(3,102,214,0.9)';
+                    ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(p2x,p2y); ctx.stroke();
+                    stateRK = rkNext;
+
+                    if(compare || method==='euler'){
+                        const euNext = eulerStep(stateEU, dt, f);
+                        const [q1x,q1y] = toCanvas(stateEU);
+                        const [q2x,q2y] = toCanvas(euNext);
+                        ctx.strokeStyle = 'rgba(239,68,68,0.9)';
+                        ctx.beginPath(); ctx.moveTo(q1x,q1y); ctx.lineTo(q2x,q2y); ctx.stroke();
+                        stateEU = euNext;
+                    }
+                }
+            }
+
+            // Fade field lightly and redraw field to keep context
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.strokeStyle = '#999'; ctx.lineWidth=1; ctx.strokeRect(20,20,canvas.width-40,canvas.height-40);
+            drawField();
+            requestAnimationFrame(step);
+        }
+
+        // Event handlers
+        document.getElementById('toggle').addEventListener('click', (e)=>{
+            running = !running; e.target.textContent = running ? 'Pause' : 'Resume';
+        });
+        document.getElementById('reset').addEventListener('click', ()=>{
+            haveInit = false; clearAll(); drawField();
+        });
+        document.getElementById('clear').addEventListener('click', ()=>{
+            clearAll(); drawField();
+        });
+        document.getElementById('system').addEventListener('change', ()=>{
+            haveInit = false; clearAll(); drawField();
+        });
+        ['mu','scale','showField'].forEach(id=>{
+            document.getElementById(id).addEventListener('input', ()=>{ clearAll(); drawField(); });
+        });
+        canvas.addEventListener('click', (ev)=>{
+            const rect = canvas.getBoundingClientRect();
+            const px = ev.clientX - rect.left; const py = ev.clientY - rect.top;
+            const st = toState(px, py);
+            stateRK = st.slice(); stateEU = st.slice(); haveInit = true;
+        });
+
+        // Initialize
+        clearAll(); drawField(); step();
+    })();
+    </script>
 </body>
 </html>
