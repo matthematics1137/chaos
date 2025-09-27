@@ -68,6 +68,12 @@
             <div class="panel tabview active" id="panel-cobweb">
                 <h3 style="margin:6px 0 8px 0">Cobweb Diagram</h3>
                 <div class="controls">
+                    <label>Map:
+                        <select id="mapKind">
+                            <option value="logistic" selected>Logistic</option>
+                            <option value="tent">Tent</option>
+                        </select>
+                    </label>
                     <label>r: <input id="r" type="range" min="2.5" max="4" step="0.001" value="3.5" /> <input id="rNum" type="number" min="2.5" max="4" step="0.001" value="3.5"/></label>
                     <label>x₀: <input id="x0" type="range" min="0" max="1" step="0.001" value="0.2" /> <input id="x0Num" type="number" min="0" max="1" step="0.001" value="0.2"/></label>
                     <label>Iter: <input id="iters" type="number" min="1" max="1000" step="1" value="60" /></label>
@@ -152,6 +158,12 @@
 
     <script>
     function logistic(x, r){ return r * x * (1 - x); }
+    function tent(x, s){ return s * (x < 0.5 ? x : (1 - x)); }
+    function mapF(kind, x, p){ return kind === 'tent' ? tent(x, p) : logistic(x, p); }
+    function mapDerivAbs(kind, x, p){
+        if(kind === 'tent') return Math.abs(x < 0.5 ? p : -p);
+        return Math.abs(p * (1 - 2*x));
+    }
 
     function drawCobweb() {
         const canvas = document.getElementById('cobweb');
@@ -188,13 +200,14 @@
         ctx.lineTo(toX(1), toY(1));
         ctx.stroke();
 
-        // y = r x (1 - x)
+        // y = f(x)
         ctx.strokeStyle = '#0557b6';
         ctx.lineWidth = 2;
         ctx.beginPath();
         for(let i=0;i<=500;i++){
             const xv = i/500;
-            const yv = Math.max(0, Math.min(1, logistic(xv, r)));
+            const kind = document.getElementById('mapKind').value;
+            const yv = Math.max(0, Math.min(1, mapF(kind, xv, r)));
             const px = toX(xv), py = toY(yv);
             if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
         }
@@ -209,7 +222,8 @@
         ctx.beginPath(); ctx.arc(toX(xn), toY(0), 3, 0, Math.PI*2); ctx.fill();
 
         for(let n=0;n<iters;n++){
-            const yn = logistic(xn, r);
+            const kind = document.getElementById('mapKind').value;
+            const yn = mapF(kind, xn, r);
             // vertical: (xn, xn) -> (xn, yn) using y=x reflection
             ctx.beginPath(); ctx.moveTo(toX(xn), toY(xn)); ctx.lineTo(toX(xn), toY(yn)); ctx.stroke();
 
@@ -258,8 +272,9 @@
             const iEnd = Math.min(samples, i + chunk);
             for(; i <= iEnd; i++){
                 const r = rMin + i * rStep;
+                const kind = document.getElementById('mapKind').value;
                 let x = 0.5;
-                for(let t=0;t<skip;t++) x = logistic(x, r);
+                for(let t=0;t<skip;t++) x = mapF(kind, x, r);
                 // color for this r column
                 if(colorMode === 'hue'){
                     const hue = 240 * (i / Math.max(1,samples));
@@ -268,7 +283,7 @@
                     ctx.fillStyle = '#111';
                 }
                 for(let t=0;t<plotN;t++){
-                    x = logistic(x, r);
+                    x = mapF(kind, x, r);
                     const px = toX(r);
                     const py = toY(x);
                     ctx.fillRect(px, py, 1, 1);
@@ -325,19 +340,34 @@
             ctx.beginPath();
             for(; i<=iEnd; i++){
                 const r = rMin + i*rStep;
+                const kind = document.getElementById('mapKind').value;
                 let x = 0.5;
-                for(let t=0;t<skip;t++) x = logistic(x,r);
+                for(let t=0;t<skip;t++) x = mapF(kind,x,r);
                 let sum = 0;
                 for(let t=0;t<N;t++){
-                    const d = Math.abs(r*(1 - 2*x));
+                    const d = mapDerivAbs(kind, x, r);
                     sum += Math.log(d+1e-12);
-                    x = logistic(x,r);
+                    x = mapF(kind,x,r);
                 }
                 const lam = sum/N;
                 const px = toX(r), py = toY(lam);
                 if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
             }
             ctx.stroke();
+            // Tent analytic overlay λ = ln r
+            const kind = document.getElementById('mapKind').value;
+            if(kind === 'tent'){
+                ctx.strokeStyle = 'rgba(16,185,129,0.9)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                for(let i2=0;i2<=samples;i2++){
+                    const r2 = rMin + i2*rStep;
+                    const l2 = Math.log(Math.max(1e-9, r2));
+                    const px2 = toX(r2), py2 = toY(l2);
+                    if(i2===0) ctx.moveTo(px2,py2); else ctx.lineTo(px2,py2);
+                }
+                ctx.stroke();
+            }
             if(i<=samples) requestAnimationFrame(frame);
         }
         requestAnimationFrame(frame);
@@ -389,6 +419,30 @@
             });
             lyRestart.addEventListener('click', ()=>{ lyRunning = true; lyPause.textContent = 'Pause'; startLyapunov(); });
         }
+        // Map switch: adjust parameter defaults/ranges per map
+        function applyMapDefaults(kind){
+            const rMinEl = document.getElementById('rMin');
+            const rMaxEl = document.getElementById('rMax');
+            const lrMinEl = document.getElementById('lrMin');
+            const lrMaxEl = document.getElementById('lrMax');
+            if(kind === 'tent'){
+                r.min = rNum.min = 0.0; r.max = rNum.max = 2.0; r.value = rNum.value = 1.8;
+                rMinEl.min = 0.0; rMinEl.max = 2.0; rMinEl.value = 0.0;
+                rMaxEl.min = 0.0; rMaxEl.max = 2.0; rMaxEl.value = 2.0;
+                lrMinEl.min = 0.0; lrMinEl.max = 2.0; lrMinEl.value = 0.0;
+                lrMaxEl.min = 0.0; lrMaxEl.max = 2.0; lrMaxEl.value = 2.0;
+            } else {
+                r.min = rNum.min = 2.5; r.max = rNum.max = 4.0; r.value = rNum.value = 3.5;
+                rMinEl.min = 2.5; rMinEl.max = 4.0; rMinEl.value = 2.5;
+                rMaxEl.min = 2.5; rMaxEl.max = 4.0; rMaxEl.value = 4.0;
+                lrMinEl.min = 2.5; lrMinEl.max = 4.0; lrMinEl.value = 2.5;
+                lrMaxEl.min = 2.5; lrMaxEl.max = 4.0; lrMaxEl.value = 4.0;
+            }
+            drawCobweb(); startBifurcation(); startLyapunov();
+        }
+        const mapKindSel = document.getElementById('mapKind');
+        mapKindSel.addEventListener('change', ()=> applyMapDefaults(mapKindSel.value));
+
         // Tabs
         const updateNotes = (target)=>{
             const notes = Array.from(document.querySelectorAll('.note-bubble'));
@@ -424,8 +478,11 @@
             document.getElementById('yMin').value = 0.0;
             document.getElementById('yMax').value = 1.0;
             document.getElementById('colorMode').value = 'hue';
+            // Map default
+            mapKindSel.value = 'logistic';
             drawCobweb();
             startBifurcation();
+            startLyapunov();
         });
     }
 
