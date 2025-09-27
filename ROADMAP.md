@@ -58,6 +58,7 @@ Aligned to the themes in Strogatz’s Nonlinear Dynamics and Chaos. Use the chec
 - [x] Logistic cobweb — pages/logistic_map.html
 - [x] Logistic bifurcation diagram — pages/logistic_map.html
 - [x] Lyapunov exponent vs r — added as Logistic tab
+- [x] Map selector (Logistic | Tent) — integrated into Logistic page
 - [ ] Tent map explorer — optional; similar to logistic
 - [ ] Periodic windows explorer (zoom presets)
 - [ ] Lyapunov overlay on bifurcation — λ(r) sign bands
