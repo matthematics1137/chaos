@@ -9,6 +9,16 @@
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 2rem; background: var(--bg); }
         h1 { text-align: center; color: #333; margin-bottom: .25rem; }
         p { color: #444; line-height: 1.6; }
+        .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
+        .main { grid-area: main; }
+        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+        .note-top { grid-area: top; }
+        .note-bottom { grid-area: bottom; }
+        .note-left { grid-area: left; }
+        .note-right { grid-area: right; }
+        @media(min-width: 1100px){
+            .layout { grid-template-columns: 220px 1fr 220px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
+        }
         .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
         .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
         label { font-size: .9rem; color: var(--muted); }
@@ -27,19 +37,29 @@
         angles and watch how tiny changes produce widely diverging paths.
     </p>
 
-    <div class="panel">
-        <div class="controls">
-            <label>θ₁ (deg): <input id="th1" type="number" step="1" value="120"/></label>
-            <label>θ₂ (deg): <input id="th2" type="number" step="1" value="-10"/></label>
-            <label>ω₁: <input id="om1" type="number" step="0.1" value="0"/></label>
-            <label>ω₂: <input id="om2" type="number" step="0.1" value="0"/></label>
-            <label>dt: <input id="dt" type="number" step="0.0005" value="0.005"/></label>
-            <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="5"/></label>
-            <button class="button" id="toggle">Pause</button>
-            <button class="button secondary" id="reset">Reset</button>
-            <button class="button secondary" id="clear">Clear</button>
+    <div class="layout">
+        <div class="note-bubble note-top" contenteditable="true" spellcheck="false">Add your top notes here (click to edit).</div>
+        <div class="note-bubble note-left" contenteditable="true" spellcheck="false">Side notes — energy, phase space, or sensitivity remarks.</div>
+
+        <div class="main">
+        <div class="panel">
+            <div class="controls">
+                <label>θ₁ (deg): <input id="th1" type="number" step="1" value="120"/></label>
+                <label>θ₂ (deg): <input id="th2" type="number" step="1" value="-10"/></label>
+                <label>ω₁: <input id="om1" type="number" step="0.1" value="0"/></label>
+                <label>ω₂: <input id="om2" type="number" step="0.1" value="0"/></label>
+                <label>dt: <input id="dt" type="number" step="0.0005" value="0.005"/></label>
+                <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="5"/></label>
+                <button class="button" id="toggle">Pause</button>
+                <button class="button secondary" id="reset">Reset</button>
+                <button class="button secondary" id="clear">Clear</button>
+            </div>
+            <canvas id="pendulum" width="900" height="600"></canvas>
         </div>
-        <canvas id="pendulum" width="900" height="600"></canvas>
+        </div>
+
+        <div class="note-bubble note-right" contenteditable="true" spellcheck="false">Side notes — label regimes or trajectories.</div>
+        <div class="note-bubble note-bottom" contenteditable="true" spellcheck="false">Bottom notes — add summary or references.</div>
     </div>
 
     <a class="back" href="../index.html">← Back to Introduction</a>

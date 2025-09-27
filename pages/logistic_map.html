@@ -14,6 +14,16 @@
         body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 2rem; background: var(--bg); color: var(--fg); }
         h1 { text-align: center; color: #333; margin-bottom: .25rem; }
         p { color: #444; line-height: 1.6; }
+        .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
+        .main { grid-area: main; }
+        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+        .note-top { grid-area: top; }
+        .note-bottom { grid-area: bottom; }
+        .note-left { grid-area: left; }
+        .note-right { grid-area: right; }
+        @media(min-width: 1100px){
+            .layout { grid-template-columns: 220px 1fr 220px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
+        }
         .row { display: grid; grid-template-columns: 1fr; gap: 18px; }
         .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
         .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
@@ -22,7 +32,7 @@
         input[type="number"] { width: 90px; }
         .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .button.secondary { background: #6b7280; }
-        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; image-rendering: pixelated; }
         .caption { font-size: .9rem; color: var(--muted); margin-top: 6px; }
         .back { display: inline-block; margin-top: 18px; color: var(--accent); text-decoration: none; font-weight: bold; }
         @media(min-width: 1000px){ .row { grid-template-columns: 1fr 1fr; } }
@@ -37,33 +47,64 @@
         cobweb iterates and how long-term behavior changes.
     </p>
 
-    <div class="row">
-        <div class="panel">
-            <h3 style="margin:6px 0 8px 0">Cobweb Diagram</h3>
-            <div class="controls">
-                <label>r: <input id="r" type="range" min="2.5" max="4" step="0.001" value="3.5" /> <input id="rNum" type="number" min="2.5" max="4" step="0.001" value="3.5"/></label>
-                <label>x₀: <input id="x0" type="range" min="0" max="1" step="0.001" value="0.2" /> <input id="x0Num" type="number" min="0" max="1" step="0.001" value="0.2"/></label>
-                <label>Iter: <input id="iters" type="number" min="1" max="1000" step="1" value="60" /></label>
-                <button class="button" id="randomize">Randomize x₀</button>
-                <button class="button secondary" id="clearCobweb">Clear</button>
-            </div>
-            <canvas id="cobweb" width="480" height="480"></canvas>
-            <div class="caption">Unit square with y = rx(1 − x) and y = x. Cobweb shows successive iterates.</div>
+    <div class="layout">
+        <div class="note-bubble note-top" contenteditable="true" spellcheck="false">
+            Add your top notes here (click to edit). Explain key concepts or give prompts.
         </div>
 
-        <div class="panel">
-            <h3 style="margin:6px 0 8px 0">Bifurcation Diagram</h3>
-            <div class="controls">
-                <label>r min: <input id="rMin" type="number" min="2.5" max="4" step="0.001" value="2.5" /></label>
-                <label>r max: <input id="rMax" type="number" min="2.5" max="4" step="0.001" value="4" /></label>
-                <label>Samples: <input id="samples" type="number" min="200" max="4000" step="50" value="1000" /></label>
-                <label>Skip: <input id="skip" type="number" min="50" max="5000" step="50" value="300" /></label>
-                <label>Plot: <input id="plotN" type="number" min="50" max="4000" step="50" value="300" /></label>
-                <button class="button" id="bifPause">Pause</button>
-                <button class="button secondary" id="bifRestart">Restart</button>
+        <div class="note-bubble note-left" contenteditable="true" spellcheck="false">
+            Side notes — e.g., definitions, parameter hints, or references.
+        </div>
+
+        <div class="main">
+        <div class="row">
+            <div class="panel">
+                <h3 style="margin:6px 0 8px 0">Cobweb Diagram</h3>
+                <div class="controls">
+                    <label>r: <input id="r" type="range" min="2.5" max="4" step="0.001" value="3.5" /> <input id="rNum" type="number" min="2.5" max="4" step="0.001" value="3.5"/></label>
+                    <label>x₀: <input id="x0" type="range" min="0" max="1" step="0.001" value="0.2" /> <input id="x0Num" type="number" min="0" max="1" step="0.001" value="0.2"/></label>
+                    <label>Iter: <input id="iters" type="number" min="1" max="1000" step="1" value="60" /></label>
+                    <button class="button" id="randomize">Randomize x₀</button>
+                    <button class="button secondary" id="clearCobweb">Clear</button>
+                </div>
+            <canvas id="cobweb" width="600" height="600"></canvas>
+            <div class="caption">Unit square with y = rx(1 − x) and y = x. Cobweb shows successive iterates.</div>
             </div>
-            <canvas id="bif" width="480" height="480"></canvas>
-            <div class="caption">For each r, iterate, discard transients, and plot long-term x values.</div>
+
+            <div class="panel">
+                <h3 style="margin:6px 0 8px 0">Bifurcation Diagram</h3>
+                <div class="controls">
+                    <label>r min: <input id="rMin" type="number" min="2.5" max="4" step="0.001" value="2.5" /></label>
+                    <label>r max: <input id="rMax" type="number" min="2.5" max="4" step="0.001" value="4" /></label>
+                    <label>Samples: <input id="samples" type="number" min="200" max="4000" step="50" value="1000" /></label>
+                    <label>Skip: <input id="skip" type="number" min="50" max="5000" step="50" value="300" /></label>
+                    <label>Plot: <input id="plotN" type="number" min="50" max="4000" step="50" value="300" /></label>
+                    <label>y min: <input id="yMin" type="number" min="0" max="1" step="0.001" value="0" /></label>
+                    <label>y max: <input id="yMax" type="number" min="0" max="1" step="0.001" value="1" /></label>
+                    <label>Color: 
+                        <select id="colorMode">
+                            <option value="hue" selected>Hue by r</option>
+                            <option value="mono">Monochrome</option>
+                        </select>
+                    </label>
+                    <button class="button" id="bifPause">Pause</button>
+                    <button class="button secondary" id="bifRestart">Restart</button>
+                </div>
+            <canvas id="bif" width="900" height="600"></canvas>
+            <div class="caption">For each r, iterate x ← r x (1 − x), discard transients, then plot the long‑term x values. Period‑doubling leads to chaos as r increases.</div>
+            <p style="font-size:.95rem; color:#4a4a4a; margin-top:6px;">
+                Bifurcation diagram: Each vertical slice corresponds to a single r. After skipping transient iterations, the remaining iterates reveal the attractor: a single point (fixed point), two points (period‑2), four points, and so on, accumulating into a fractal set of bands — the onset of chaos.
+            </p>
+            </div>
+        </div>
+        </div>
+
+        <div class="note-bubble note-right" contenteditable="true" spellcheck="false">
+            Side notes — use this to point out windows of periodicity or Feigenbaum constants.
+        </div>
+
+        <div class="note-bubble note-bottom" contenteditable="true" spellcheck="false">
+            Bottom notes — summarize takeaways or add links for further reading.
         </div>
     </div>
 
@@ -149,13 +190,20 @@
         const samples = parseInt(document.getElementById('samples').value, 10);
         const skip = parseInt(document.getElementById('skip').value, 10);
         const plotN = parseInt(document.getElementById('plotN').value, 10);
+        const yMin = Math.max(0, Math.min(1, parseFloat(document.getElementById('yMin').value)));
+        const yMax = Math.max(0, Math.min(1, parseFloat(document.getElementById('yMax').value)));
+        const colorMode = document.getElementById('colorMode').value;
 
         const localVersion = ++bifVersion;
         ctx.clearRect(0,0,canvas.width, canvas.height);
         ctx.fillStyle = '#111';
 
         const toX = r => ( (r - rMin) / (rMax - rMin) ) * (canvas.width-40) + 20;
-        const toY = x => (1 - x) * (canvas.height-40) + 20;
+        const toY = x => {
+            const y = (x - yMin) / (yMax - yMin);
+            const yc = Math.max(0, Math.min(1, y));
+            return (1 - yc) * (canvas.height-40) + 20;
+        };
 
         const rStep = (rMax - rMin) / samples;
         let i = 0;
@@ -170,6 +218,13 @@
                 const r = rMin + i * rStep;
                 let x = 0.5;
                 for(let t=0;t<skip;t++) x = logistic(x, r);
+                // color for this r column
+                if(colorMode === 'hue'){
+                    const hue = 240 * (i / Math.max(1,samples));
+                    ctx.fillStyle = `hsl(${hue}, 80%, 35%)`;
+                } else {
+                    ctx.fillStyle = '#111';
+                }
                 for(let t=0;t<plotN;t++){
                     x = logistic(x, r);
                     const px = toX(r);
