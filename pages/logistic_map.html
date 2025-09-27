@@ -85,6 +85,7 @@
                     </label>
                     <button class="button" id="bifPause">Pause</button>
                     <button class="button secondary" id="bifRestart">Restart</button>
+                    <button class="button secondary" id="resetAll">Reset</button>
                 </div>
             <canvas id="bif" width="1000" height="700"></canvas>
             <div class="caption">For each r, iterate x ← r x (1 − x), discard transients, then plot the long‑term x values. Period‑doubling leads to chaos as r increases.</div>
@@ -263,6 +264,24 @@
         restartBtn.addEventListener('click', ()=>{
             bifRunning = true;
             pauseBtn.textContent = 'Pause';
+            startBifurcation();
+        });
+        // Reset all controls to default values
+        document.getElementById('resetAll').addEventListener('click', ()=>{
+            // Cobweb defaults
+            r.value = 3.5; rNum.value = 3.5;
+            x0.value = 0.2; x0Num.value = 0.2;
+            iters.value = 60;
+            // Bifurcation defaults
+            document.getElementById('rMin').value = 2.5;
+            document.getElementById('rMax').value = 4.0;
+            document.getElementById('samples').value = 1000;
+            document.getElementById('skip').value = 300;
+            document.getElementById('plotN').value = 300;
+            document.getElementById('yMin').value = 0.0;
+            document.getElementById('yMax').value = 1.0;
+            document.getElementById('colorMode').value = 'hue';
+            drawCobweb();
             startBifurcation();
         });
     }

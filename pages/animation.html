@@ -254,7 +254,17 @@
             running = !running; e.target.textContent = running ? 'Pause' : 'Resume';
         });
         document.getElementById('reset').addEventListener('click', ()=>{
-            clearAll(); drawField(); reseed(document.getElementById('seeds').value);
+            // Restore defaults for clarity
+            document.getElementById('system').value = 'sho';
+            document.getElementById('mu').value = 1.0;
+            document.getElementById('dt').value = 0.01;
+            document.getElementById('speed').value = 6;
+            document.getElementById('scale').value = 6;
+            document.getElementById('method').value = 'rk4';
+            document.getElementById('compare').checked = false;
+            document.getElementById('showField').checked = true;
+            document.getElementById('seeds').value = 'ring8';
+            clearAll(); drawField(); reseed('ring8');
         });
         document.getElementById('clear').addEventListener('click', ()=>{
             clearAll(); drawField();

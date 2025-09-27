@@ -148,7 +148,14 @@
             e.target.textContent = running ? 'Pause' : 'Resume';
         });
         document.getElementById('reset').addEventListener('click', ()=>{
+            // Restore defaults and clear canvas
+            document.getElementById('sigma').value = 10;
+            document.getElementById('rho').value = 28;
+            document.getElementById('beta').value = 2.6667;
+            document.getElementById('dt').value = 0.005;
+            document.getElementById('speed').value = 5;
             state = [0.01, 0, 0];
+            ctx.clearRect(0,0,canvas.width, canvas.height);
         });
         document.getElementById('clear').addEventListener('click', ()=>{
             ctx.clearRect(0,0,canvas.width, canvas.height);
