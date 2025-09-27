@@ -130,12 +130,22 @@
         <div class="note-bubble note-bottom active" data-tab="panel-cobweb">Cobweb — suggested sweeps and reading.</div>
 
         <!-- Bifurcation -->
+        <div class="note-bubble note-top" data-tab="panel-bif">Bifurcation — author notes/headline for this tab.</div>
+        <div class="note-bubble note-left" data-tab="panel-bif">Bifurcation — definitions, period‑doubling route, hints.</div>
         <div class="note-bubble note-right" data-tab="panel-bif">Bifurcation — windows, Feigenbaum constants.</div>
         <div class="note-bubble note-bottom" data-tab="panel-bif">Bifurcation — how to zoom and interpret bands.</div>
 
         <!-- Lyapunov -->
+        <div class="note-bubble note-top" data-tab="panel-lyap">Lyapunov — author notes/headline for this tab.</div>
+        <div class="note-bubble note-left" data-tab="panel-lyap">Lyapunov — definition, computation recipe.</div>
         <div class="note-bubble note-right" data-tab="panel-lyap">Lyapunov — λ(r) sign, relation to chaos.</div>
         <div class="note-bubble note-bottom" data-tab="panel-lyap">Lyapunov — skip transients, averaging details.</div>
+
+        <!-- Default placeholders (used if a future tab lacks notes) -->
+        <div class="note-bubble note-top" data-tab="default">Default — top notes placeholder.</div>
+        <div class="note-bubble note-left" data-tab="default">Default — left notes placeholder.</div>
+        <div class="note-bubble note-right" data-tab="default">Default — right notes placeholder.</div>
+        <div class="note-bubble note-bottom" data-tab="default">Default — bottom notes placeholder.</div>
     </div>
 
     <a class="back" href="../index.html">← Back to Introduction</a>
@@ -381,9 +391,11 @@
         }
         // Tabs
         const updateNotes = (target)=>{
-            document.querySelectorAll('.note-bubble').forEach(nb=>{
+            const notes = Array.from(document.querySelectorAll('.note-bubble'));
+            const anyMatch = notes.some(nb => nb.getAttribute('data-tab') === target);
+            notes.forEach(nb=>{
                 const t = nb.getAttribute('data-tab');
-                nb.classList.toggle('active', t === target);
+                nb.classList.toggle('active', t === (anyMatch ? target : 'default'));
             });
         };
         document.querySelectorAll('.tabbtn').forEach(btn=>{
