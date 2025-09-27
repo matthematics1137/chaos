@@ -25,7 +25,7 @@
             .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
         }
         .row { display: grid; grid-template-columns: 1fr; gap: 18px; }
-        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
         .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
         label { font-size: .9rem; color: var(--muted); }
         input[type="range"] { width: 220px; }
@@ -63,7 +63,7 @@
                     <button class="button" id="randomize">Randomize x₀</button>
                     <button class="button secondary" id="clearCobweb">Clear</button>
                 </div>
-            <canvas id="cobweb" width="600" height="600"></canvas>
+            <canvas id="cobweb" width="700" height="700"></canvas>
             <div class="caption">Unit square with y = rx(1 − x) and y = x. Cobweb shows successive iterates.</div>
             </div>
 
@@ -86,7 +86,7 @@
                     <button class="button" id="bifPause">Pause</button>
                     <button class="button secondary" id="bifRestart">Restart</button>
                 </div>
-            <canvas id="bif" width="900" height="600"></canvas>
+            <canvas id="bif" width="1000" height="700"></canvas>
             <div class="caption">For each r, iterate x ← r x (1 − x), discard transients, then plot the long‑term x values. Period‑doubling leads to chaos as r increases.</div>
             <p style="font-size:.95rem; color:#4a4a4a; margin-top:6px;">
                 Bifurcation diagram: Each vertical slice corresponds to a single r. After skipping transient iterations, the remaining iterates reveal the attractor: a single point (fixed point), two points (period‑2), four points, and so on, accumulating into a fractal set of bands — the onset of chaos.
@@ -115,14 +115,23 @@
         // Clear
         ctx.clearRect(0,0,canvas.width, canvas.height);
 
-        // Axes box
-        ctx.strokeStyle = '#999';
+        // Axes box + subtle grid
+        ctx.strokeStyle = '#a8a8a8';
         ctx.lineWidth = 1;
         ctx.strokeRect(40, 20, canvas.width-60, canvas.height-60);
 
         // Helpers
         const toX = v => 40 + v * (canvas.width - 60);
         const toY = v => 20 + (1 - v) * (canvas.height - 60);
+
+        // Grid lines
+        ctx.setLineDash([4,6]);
+        ctx.strokeStyle = '#e6e6e6';
+        [0.25,0.5,0.75].forEach(t=>{
+            ctx.beginPath(); ctx.moveTo(toX(0), toY(t)); ctx.lineTo(toX(1), toY(t)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toX(t), toY(0)); ctx.lineTo(toX(t), toY(1)); ctx.stroke();
+        });
+        ctx.setLineDash([]);
 
         // y = x
         ctx.strokeStyle = '#c0c0c0';
@@ -132,7 +141,8 @@
         ctx.stroke();
 
         // y = r x (1 - x)
-        ctx.strokeStyle = '#0366d6';
+        ctx.strokeStyle = '#0557b6';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         for(let i=0;i<=500;i++){
             const xv = i/500;
@@ -143,28 +153,20 @@
         ctx.stroke();
 
         // Cobweb iterations
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = 'rgba(239,68,68,0.9)';
         ctx.fillStyle = '#ef4444';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.2;
         let xn = x;
         // draw starting point
-        ctx.beginPath();
-        ctx.arc(toX(xn), toY(0), 2.5, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(toX(xn), toY(0), 3, 0, Math.PI*2); ctx.fill();
 
         for(let n=0;n<iters;n++){
             const yn = logistic(xn, r);
             // vertical: (xn, xn) -> (xn, yn) using y=x reflection
-            ctx.beginPath();
-            ctx.moveTo(toX(xn), toY(xn));
-            ctx.lineTo(toX(xn), toY(yn));
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toX(xn), toY(xn)); ctx.lineTo(toX(xn), toY(yn)); ctx.stroke();
 
             // horizontal: (xn, yn) -> (yn, yn)
-            ctx.beginPath();
-            ctx.moveTo(toX(xn), toY(yn));
-            ctx.lineTo(toX(yn), toY(yn));
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toX(xn), toY(yn)); ctx.lineTo(toX(yn), toY(yn)); ctx.stroke();
 
             xn = yn;
             if(xn<0 || xn>1) break;

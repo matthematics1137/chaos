@@ -19,7 +19,7 @@
         @media(min-width: 1100px){
             .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
         }
-        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
+        .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
         .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
         label { font-size: .9rem; color: var(--muted); }
         select, input[type="number"] { padding: 4px 6px; }
@@ -27,7 +27,7 @@
         input[type="range"] { width: 220px; }
         .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .button.secondary { background: #6b7280; }
-        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+        canvas { width: 100%; height: auto; background: radial-gradient(900px 700px at 50% 50%, #ffffff, #f8fbff); border: 1px solid #ddd; border-radius: 6px; }
         a { color: var(--accent); font-weight: bold; text-decoration: none; }
         .legend { font-size: .9rem; color: var(--muted); margin-top: 6px; }
     </style>
@@ -73,7 +73,7 @@
                     <button class="button secondary" id="reset">Reset</button>
                     <button class="button secondary" id="clear">Clear</button>
                 </div>
-                <canvas id="rkplay" width="900" height="600"></canvas>
+                <canvas id="rkplay" width="1000" height="700"></canvas>
                 <div class="legend">Click in the canvas to set the initial state (x,y). Blue = RK4, Red = Euler (comparison).</div>
                 <p style="font-size:.95rem;color:#4a4a4a;margin-top:6px;">
                     Systems: SHO (x' = y, y' = −x). Van der Pol (x' = y, y' = μ(1−x²)y − x). Lotka–Volterra (prey–predator) uses preset parameters.
@@ -118,7 +118,7 @@
         let mu = 1.0;
 
         // States
-        let particles = []; // each: { rk:[x,y], eu:[x,y] }
+        let particles = []; // each: { rk:[x,y], eu:[x,y], hue:number }
 
         function readControls(){
             dt = parseFloat(document.getElementById('dt').value);
@@ -163,18 +163,18 @@
                     const a = (i/n)*Math.PI*2;
                     const x = r*Math.cos(a);
                     const y = r*Math.sin(a);
-                    particles.push({ rk:[x,y], eu:[x,y] });
+                    particles.push({ rk:[x,y], eu:[x,y], hue: (i/n)*330 });
                 }
             } else if(kind === 'grid4x3'){
                 const xs = [-0.35,-0.15,0.15,0.35].map(t=>t*scale);
                 const ys = [-0.25,0,0.25].map(t=>t*scale);
-                for(const x of xs){ for(const y of ys){ particles.push({ rk:[x,y], eu:[x,y] }); } }
+                let k=0; for(const x of xs){ for(const y of ys){ particles.push({ rk:[x,y], eu:[x,y], hue:(k++/12)*330 }); } }
             } else if(kind === 'random10'){
                 const n = 10;
                 for(let i=0;i<n;i++){
                     const x = (Math.random()-0.5)*scale*0.9;
                     const y = (Math.random()-0.5)*scale*0.9;
-                    particles.push({ rk:[x,y], eu:[x,y] });
+                    particles.push({ rk:[x,y], eu:[x,y], hue: Math.random()*330 });
                 }
             }
         }
@@ -221,7 +221,9 @@
                         const rkNext = rk4Step(p.rk, dt, f);
                         const [p1x,p1y] = toCanvas(p.rk);
                         const [p2x,p2y] = toCanvas(rkNext);
-                        ctx.strokeStyle = 'rgba(3,102,214,0.7)';
+                        // colored trajectories by seed
+                        ctx.strokeStyle = `hsla(${p.hue|0}, 80%, 45%, 0.9)`;
+                        ctx.lineWidth = 1.4;
                         ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(p2x,p2y); ctx.stroke();
                         p.rk = rkNext;
 
@@ -229,8 +231,10 @@
                             const euNext = eulerStep(p.eu, dt, f);
                             const [q1x,q1y] = toCanvas(p.eu);
                             const [q2x,q2y] = toCanvas(euNext);
-                            ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+                            ctx.setLineDash([6,4]);
+                            ctx.strokeStyle = 'rgba(239,68,68,0.7)';
                             ctx.beginPath(); ctx.moveTo(q1x,q1y); ctx.lineTo(q2x,q2y); ctx.stroke();
+                            ctx.setLineDash([]);
                             p.eu = euNext;
                         }
                     }
@@ -268,7 +272,7 @@
             const rect = canvas.getBoundingClientRect();
             const px = ev.clientX - rect.left; const py = ev.clientY - rect.top;
             const st = toState(px, py);
-            particles.push({ rk: st.slice(), eu: st.slice() });
+            particles.push({ rk: st.slice(), eu: st.slice(), hue: Math.random()*330 });
         });
 
         // Initialize

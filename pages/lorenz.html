@@ -26,7 +26,7 @@
         input[type="range"] { width: 220px; }
         .button { background: var(--accent); border: none; color: white; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .button.secondary { background: #6b7280; }
-        canvas { width: 100%; height: auto; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+        canvas { width: 100%; height: auto; background: linear-gradient(180deg,#ffffff,#f7fbff); border: 1px solid #ddd; border-radius: 6px; }
         .back { display: inline-block; margin-top: 18px; color: var(--accent); text-decoration: none; font-weight: bold; }
     </style>
 </head>
@@ -55,7 +55,7 @@
                 <button class="button secondary" id="reset">Reset</button>
                 <button class="button secondary" id="clear">Clear</button>
             </div>
-            <canvas id="lorenz" width="900" height="600"></canvas>
+        <canvas id="lorenz" width="1000" height="700"></canvas>
         </div>
         </div>
 
@@ -130,11 +130,11 @@
                     const next = rk4Lorenz(state, params, dt);
                     const p1 = proj.project(state);
                     const p2 = proj.project(next);
-                    ctx.strokeStyle = `rgba(3,102,214,${p2.a})`;
-                    ctx.beginPath();
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
+                    // Color by z-depth and add slight glow
+                    const hue = 210 + Math.max(-40, Math.min(40, (next[2]-state[2])))*2;
+                    ctx.strokeStyle = `hsla(${hue}, 80%, 45%, ${p2.a})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
                     state = next;
                     proj.step();
                 }
