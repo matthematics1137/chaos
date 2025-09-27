@@ -70,13 +70,13 @@ Aligned to the themes in Strogatz’s Nonlinear Dynamics and Chaos. Use the chec
 - [ ] Correlation dimension — D₂ estimate
 
 ## Strange Attractors
-- [ ] Hénon map — 2D dissipative map
+- [x] Hénon map — 2D dissipative map — pages/henon.html
 - [ ] Rössler system — simple chaotic flow
 - [ ] Attractor reconstruction — delay embedding
 - [ ] Forced double‑well oscillator — crises
 
 ## Collective Behavior
-- [ ] Kuramoto model — synchronization transition
+- [x] Kuramoto model — synchronization transition — pages/kuramoto.html
 - [ ] Frequency distributions & partial locking — r(K)
 
 ---
@@ -85,4 +85,3 @@ Planned next builds
 - [ ] Lyapunov exponent vs r (Logistic page tab)
 - [ ] Hopf bifurcation — Brusselator
 - [ ] Circle map + Arnold tongues
-

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hénon Map — Strange Attractor</title>
+  <style>
+    :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); }
+    h1 { text-align: center; color: #333; margin-bottom: .25rem; }
+    p { color: #444; line-height: 1.6; }
+    .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
+    .main { grid-area: main; }
+    .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+    .note-top { grid-area: top; } .note-bottom { grid-area: bottom; } .note-left { grid-area: left; } .note-right { grid-area: right; }
+    @media(min-width: 1100px){ .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; } }
+    .panel { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:10px; }
+    label { font-size:.9rem; color:var(--muted); }
+    input[type="number"]{ width:90px; }
+    .button{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+    .button.secondary{ background:#6b7280; }
+    canvas { width:100%; height:auto; background: #fff; border:1px solid #ddd; border-radius:6px; }
+    .back { display:inline-block; margin-top:18px; color:var(--accent); text-decoration:none; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>Hénon Map</h1>
+  <p>The classical 2D map x_{n+1} = 1 − a x_n² + y_n, y_{n+1} = b x_n. For (a,b) ≈ (1.4, 0.3), it produces a strange attractor via stretching and folding.</p>
+
+  <div class="layout">
+    <div class="note-bubble note-top">Top notes — brief attractor description and parameter hints.</div>
+    <div class="note-bubble note-left">Side notes — density vs iterations; transients and color choices.</div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="controls">
+          <label>a: <input id="a" type="number" step="0.01" value="1.40"/></label>
+          <label>b: <input id="b" type="number" step="0.01" value="0.30"/></label>
+          <label>Skip: <input id="skip" type="number" step="1000" value="2000"/></label>
+          <label>Points: <input id="points" type="number" step="1000" value="50000"/></label>
+          <button class="button" id="draw">Render</button>
+          <button class="button" id="pause">Pause</button>
+          <button class="button secondary" id="reset">Reset</button>
+          <button class="button secondary" id="clear">Clear</button>
+        </div>
+        <canvas id="henon" width="1000" height="700"></canvas>
+        <p><a class="back" href="../index.html">← Back to Introduction</a></p>
+      </div>
+    </div>
+
+    <div class="note-bubble note-right">Side notes — typical ranges: a∈[1.2,1.5], b∈[0.2,0.4].</div>
+    <div class="note-bubble note-bottom">Bottom notes — stretching/folding, measure concentration.</div>
+  </div>
+
+  <script>
+  function stepHenon([x,y], a, b){ return [ 1 - a*x*x + y, b*x ]; }
+  (function(){
+    const canvas=document.getElementById('henon'); const ctx=canvas.getContext('2d');
+    let running=true; let a=1.4, b=0.3; let skip=2000, points=50000; let state=[0.1,0.0];
+    let drawn=0; let started=false; let version=0;
+    function read(){ a=parseFloat(document.getElementById('a').value); b=parseFloat(document.getElementById('b').value); skip=parseInt(document.getElementById('skip').value,10); points=parseInt(document.getElementById('points').value,10); }
+    function clearAll(){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.strokeRect(40,20,canvas.width-60,canvas.height-60); }
+    function toCanvas([x,y]){ // typical viewport
+      const xMin=-1.6, xMax=1.6, yMin=-0.5, yMax=0.5;
+      const px=(x-xMin)/(xMax-xMin)*(canvas.width-60)+40;
+      const py=(1-(y-yMin)/(yMax-yMin))*(canvas.height-60)+20;
+      return [px,py];
+    }
+    function start(){
+      read(); started=true; drawn=0; state=[0.1,0.0]; const my=++version; // drop prior runs
+      // burn-in
+      for(let i=0;i<skip;i++){ state=stepHenon(state,a,b); }
+      function frame(){
+        if(!running || my!==version) { requestAnimationFrame(frame); return; }
+        ctx.fillStyle='rgba(3,102,214,0.9)';
+        const batch=5000;
+        for(let i=0;i<batch && drawn<points;i++){
+          state=stepHenon(state,a,b);
+          const [px,py]=toCanvas(state);
+          ctx.fillRect(px,py,1,1);
+          drawn++;
+        }
+        if(drawn<points) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+    document.getElementById('draw').addEventListener('click', ()=>{ clearAll(); start(); });
+    document.getElementById('pause').addEventListener('click', (e)=>{ running=!running; e.target.textContent=running?'Pause':'Resume'; });
+    document.getElementById('reset').addEventListener('click', ()=>{ document.getElementById('a').value=1.40; document.getElementById('b').value=0.30; document.getElementById('skip').value=2000; document.getElementById('points').value=50000; running=true; document.getElementById('pause').textContent='Pause'; clearAll(); start(); });
+    document.getElementById('clear').addEventListener('click', ()=>{ clearAll(); });
+    clearAll(); start();
+  })();
+  </script>
+</body>
+</html>
+
