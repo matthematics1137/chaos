@@ -11,7 +11,7 @@
             --muted: #555;
             --accent: #0366d6;
         }
-        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 2rem; background: var(--bg); color: var(--fg); }
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); color: var(--fg); }
         h1 { text-align: center; color: #333; margin-bottom: .25rem; }
         p { color: #444; line-height: 1.6; }
         .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
@@ -22,7 +22,7 @@
         .note-left { grid-area: left; }
         .note-right { grid-area: right; }
         @media(min-width: 1100px){
-            .layout { grid-template-columns: 220px 1fr 220px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
+            .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; }
         }
         .row { display: grid; grid-template-columns: 1fr; gap: 18px; }
         .panel { background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; }
@@ -48,13 +48,9 @@
     </p>
 
     <div class="layout">
-        <div class="note-bubble note-top" contenteditable="true" spellcheck="false">
-            Add your top notes here (click to edit). Explain key concepts or give prompts.
-        </div>
+        <div class="note-bubble note-top">Top notes area — author explanations.</div>
 
-        <div class="note-bubble note-left" contenteditable="true" spellcheck="false">
-            Side notes — e.g., definitions, parameter hints, or references.
-        </div>
+        <div class="note-bubble note-left">Side notes — definitions, parameter hints, references.</div>
 
         <div class="main">
         <div class="row">
@@ -99,13 +95,9 @@
         </div>
         </div>
 
-        <div class="note-bubble note-right" contenteditable="true" spellcheck="false">
-            Side notes — use this to point out windows of periodicity or Feigenbaum constants.
-        </div>
+        <div class="note-bubble note-right">Side notes — windows of periodicity, Feigenbaum constants.</div>
 
-        <div class="note-bubble note-bottom" contenteditable="true" spellcheck="false">
-            Bottom notes — summarize takeaways or add links for further reading.
-        </div>
+        <div class="note-bubble note-bottom">Bottom notes — takeaways and further reading.</div>
     </div>
 
     <a class="back" href="../index.html">← Back to Introduction</a>
