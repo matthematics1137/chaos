@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tent Map — Cobweb, Bifurcation, Lyapunov</title>
+  <style>
+    :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); color:#222; }
+    h1 { text-align:center; color:#333; margin-bottom:.25rem; }
+    p { color:#444; line-height:1.6; }
+    .layout { display:grid; grid-template-areas:'top' 'main' 'bottom'; gap:16px; }
+    .main { grid-area: main; }
+    .note-bubble { background: #fff8dc; border:1px solid #f0e6b6; border-radius:8px; padding:10px; color:#5b4b20; display:none; }
+    .note-bubble.active { display:block; }
+    .note-top { grid-area: top; } .note-bottom { grid-area: bottom; } .note-left { grid-area: left; } .note-right { grid-area: right; }
+    @media(min-width:1100px){ .layout { grid-template-columns:260px 1fr 260px; grid-template-areas:'top top top' 'left main right' 'bottom bottom bottom'; } }
+    .panel { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:10px; }
+    label { font-size:.9rem; color:var(--muted); }
+    input[type="number"]{ width:90px; }
+    input[type="range"]{ width:220px; }
+    .button{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+    .button.secondary{ background:#6b7280; }
+    canvas { width:100%; height:auto; background:#fff; border:1px solid #ddd; border-radius:6px; image-rendering:pixelated; }
+    .tabs { display:flex; gap:8px; margin:8px 0; }
+    .tabbtn { background:#e5e7eb; border:none; padding:8px 12px; border-radius:9999px; cursor:pointer; font-weight:bold; color:#374151; }
+    .tabbtn.active { background:#0366d6; color:#fff; }
+    .tabview { display:none; }
+    .tabview.active { display:block; }
+    .back { display:inline-block; margin-top:18px; color:var(--accent); text-decoration:none; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>Tent Map</h1>
+  <p>f(x) = r min(x, 1−x), with r ∈ [0,2]. A piecewise linear map that shares many features with the logistic map, including period‑doubling and chaos.</p>
+
+  <div class="layout">
+    <!-- Tab-specific note bubbles for Cobweb/Bifurcation/Lyapunov -->
+    <div class="note-bubble note-top active" data-tab="panel-cob">Cobweb — piecewise linear geometry simplifies analysis.</div>
+    <div class="note-bubble note-left active" data-tab="panel-cob">Cobweb — start x₀ anywhere; watch folding.</div>
+    <div class="note-bubble note-right active" data-tab="panel-cob">Cobweb — compare to logistic at matching regimes.</div>
+    <div class="note-bubble note-bottom active" data-tab="panel-cob">Cobweb — exercises: locate fixed/period‑2 points.</div>
+
+    <div class="note-bubble note-top" data-tab="panel-bif">Bifurcation — identical route to chaos.</div>
+    <div class="note-bubble note-left" data-tab="panel-bif">Bifurcation — r on [0,2], vertical slices.</div>
+    <div class="note-bubble note-right" data-tab="panel-bif">Bifurcation — windows, scaling.</div>
+    <div class="note-bubble note-bottom" data-tab="panel-bif">Bifurcation — zoom suggestions.</div>
+
+    <div class="note-bubble note-top" data-tab="panel-lyap">Lyapunov — λ(r) computed from log|f'|.</div>
+    <div class="note-bubble note-left" data-tab="panel-lyap">Lyapunov — f'(x)=±r on each branch.</div>
+    <div class="note-bubble note-right" data-tab="panel-lyap">Lyapunov — threshold at λ=0.</div>
+    <div class="note-bubble note-bottom" data-tab="panel-lyap">Lyapunov — analytic checks possible.</div>
+
+    <div class="main">
+      <div class="tabs">
+        <button class="tabbtn active" data-target="panel-cob">Cobweb</button>
+        <button class="tabbtn" data-target="panel-bif">Bifurcation</button>
+        <button class="tabbtn" data-target="panel-lyap">Lyapunov</button>
+      </div>
+
+      <div class="panel tabview active" id="panel-cob">
+        <div class="controls">
+          <label>r: <input id="r" type="range" min="0" max="2" step="0.001" value="1.8"/> <input id="rNum" type="number" min="0" max="2" step="0.001" value="1.8"/></label>
+          <label>x₀: <input id="x0" type="range" min="0" max="1" step="0.001" value="0.2"/> <input id="x0Num" type="number" min="0" max="1" step="0.001" value="0.2"/></label>
+          <label>Iter: <input id="iters" type="number" min="1" max="1000" step="1" value="60"/></label>
+          <button class="button" id="randomize">Randomize x₀</button>
+          <button class="button secondary" id="clearCob">Clear</button>
+        </div>
+        <canvas id="cob" width="700" height="700"></canvas>
+      </div>
+
+      <div class="panel tabview" id="panel-bif">
+        <div class="controls">
+          <label>r min: <input id="rMin" type="number" min="0" max="2" step="0.001" value="0"/></label>
+          <label>r max: <input id="rMax" type="number" min="0" max="2" step="0.001" value="2"/></label>
+          <label>Samples: <input id="samples" type="number" min="200" max="4000" step="50" value="1000"/></label>
+          <label>Skip: <input id="skip" type="number" min="50" max="5000" step="50" value="300"/></label>
+          <label>Plot: <input id="plotN" type="number" min="50" max="4000" step="50" value="300"/></label>
+          <label>y min: <input id="yMin" type="number" min="0" max="1" step="0.001" value="0"/></label>
+          <label>y max: <input id="yMax" type="number" min="0" max="1" step="0.001" value="1"/></label>
+          <button class="button" id="bifPause">Pause</button>
+          <button class="button secondary" id="bifRestart">Restart</button>
+        </div>
+        <canvas id="bif" width="1000" height="700"></canvas>
+      </div>
+
+      <div class="panel tabview" id="panel-lyap">
+        <div class="controls">
+          <label>r min: <input id="lrMin" type="number" min="0" max="2" step="0.001" value="0"/></label>
+          <label>r max: <input id="lrMax" type="number" min="0" max="2" step="0.001" value="2"/></label>
+          <label>Samples: <input id="lsamples" type="number" min="200" max="4000" step="50" value="1000"/></label>
+          <label>Skip: <input id="lskip" type="number" min="50" max="5000" step="50" value="300"/></label>
+          <label>Iter: <input id="lN" type="number" min="50" max="8000" step="50" value="1000"/></label>
+          <label>y min: <input id="lyMin" type="number" step="0.1" value="-2.0"/></label>
+          <label>y max: <input id="lyMax" type="number" step="0.1" value="1.0"/></label>
+          <button class="button" id="lyPause">Pause</button>
+          <button class="button secondary" id="lyRestart">Restart</button>
+        </div>
+        <canvas id="lyap" width="1000" height="700"></canvas>
+      </div>
+
+      <p><a class="back" href="../index.html">← Back to Introduction</a></p>
+    </div>
+
+    <!-- Defaults if future tabs lack notes -->
+    <div class="note-bubble note-top" data-tab="default">Default — top notes placeholder.</div>
+    <div class="note-bubble note-left" data-tab="default">Default — left notes placeholder.</div>
+    <div class="note-bubble note-right" data-tab="default">Default — right notes placeholder.</div>
+    <div class="note-bubble note-bottom" data-tab="default">Default — bottom notes placeholder.</div>
+  </div>
+
+  <script>
+  function tent(x,r){ return r * (x < 0.5 ? x : (1-x)); }
+  // Cobweb
+  function drawCob(){
+    const c=document.getElementById('cob'); const ctx=c.getContext('2d');
+    const r=parseFloat(document.getElementById('r').value); const iters=parseInt(document.getElementById('iters').value,10); let x=parseFloat(document.getElementById('x0').value);
+    ctx.clearRect(0,0,c.width,c.height); ctx.strokeStyle='#a8a8a8'; ctx.strokeRect(40,20,c.width-60,c.height-60);
+    const toX=v=>40+v*(c.width-60), toY=v=>20+(1-v)*(c.height-60);
+    // Grid
+    ctx.setLineDash([4,6]); ctx.strokeStyle='#e6e6e6'; [0.25,0.5,0.75].forEach(t=>{ ctx.beginPath(); ctx.moveTo(toX(0),toY(t)); ctx.lineTo(toX(1),toY(t)); ctx.stroke(); ctx.beginPath(); ctx.moveTo(toX(t),toY(0)); ctx.lineTo(toX(t),toY(1)); ctx.stroke(); }); ctx.setLineDash([]);
+    // y=x
+    ctx.strokeStyle='#c0c0c0'; ctx.beginPath(); ctx.moveTo(toX(0),toY(0)); ctx.lineTo(toX(1),toY(1)); ctx.stroke();
+    // y=tent
+    ctx.strokeStyle='#0557b6'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(toX(0),toY(0)); ctx.lineTo(toX(0.5),toY(r*0.5)); ctx.lineTo(toX(1),toY(0)); ctx.stroke();
+    // cobweb
+    ctx.strokeStyle='rgba(239,68,68,0.9)'; ctx.lineWidth=1.2; ctx.beginPath(); ctx.arc(toX(x), toY(0), 3,0,Math.PI*2); ctx.fill();
+    let xn=x; for(let n=0;n<iters;n++){ const yn=tent(xn,r); ctx.beginPath(); ctx.moveTo(toX(xn),toY(xn)); ctx.lineTo(toX(xn),toY(yn)); ctx.stroke(); ctx.beginPath(); ctx.moveTo(toX(xn),toY(yn)); ctx.lineTo(toX(yn),toY(yn)); ctx.stroke(); xn=yn; if(xn<0||xn>1)break; }
+  }
+  // Bifurcation progressive
+  let bifRun=true, bifVer=0; function startBif(){ const c=document.getElementById('bif'); const ctx=c.getContext('2d'); const rMin=parseFloat(document.getElementById('rMin').value), rMax=parseFloat(document.getElementById('rMax').value); const samples=parseInt(document.getElementById('samples').value,10); const skip=parseInt(document.getElementById('skip').value,10); const plotN=parseInt(document.getElementById('plotN').value,10); const yMin=parseFloat(document.getElementById('yMin').value), yMax=parseFloat(document.getElementById('yMax').value); const local=++bifVer; ctx.clearRect(0,0,c.width,c.height); const toX=r=>((r-rMin)/(rMax-rMin))*(c.width-60)+40, toY=x=>{ const y=(x-yMin)/(yMax-yMin); return (1-Math.max(0,Math.min(1,y)))*(c.height-60)+20; }; const step=(r)=>{ let x=0.5; for(let t=0;t<skip;t++) x=tent(x,r); for(let t=0;t<plotN;t++){ x=tent(x,r); const px=toX(r), py=toY(x); ctx.fillRect(px,py,1,1); } }; const rStep=(rMax-rMin)/samples; let i=0; const chunk=Math.max(2,Math.floor(samples/120)); ctx.fillStyle='#111'; function frame(){ if(local!==bifVer){return;} if(!bifRun){ requestAnimationFrame(frame); return; } const iEnd=Math.min(samples,i+chunk); for(;i<=iEnd;i++){ const r=rMin+i*rStep; step(r); } if(i<=samples) requestAnimationFrame(frame); } requestAnimationFrame(frame); }
+  // Lyapunov
+  let lyRun=true, lyVer=0; function startLy(){ const c=document.getElementById('lyap'); const ctx=c.getContext('2d'); const rMin=parseFloat(document.getElementById('lrMin').value), rMax=parseFloat(document.getElementById('lrMax').value); const samples=parseInt(document.getElementById('lsamples').value,10); const skip=parseInt(document.getElementById('lskip').value,10); const N=parseInt(document.getElementById('lN').value,10); const yMin=parseFloat(document.getElementById('lyMin').value), yMax=parseFloat(document.getElementById('lyMax').value); const local=++lyVer; ctx.clearRect(0,0,c.width,c.height); ctx.strokeStyle='#a8a8a8'; ctx.strokeRect(40,20,c.width-60,c.height-60); const toX=r=>((r-rMin)/(rMax-rMin))*(c.width-60)+40, toY=l=>{ const y=(l-yMin)/(yMax-yMin); return (1-Math.max(0,Math.min(1,y)))*(c.height-60)+20; }; if(yMin<0&&yMax>0){ ctx.setLineDash([4,6]); const y0=toY(0); ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.moveTo(40,y0); ctx.lineTo(c.width-20,y0); ctx.stroke(); ctx.setLineDash([]); } const rStep=(rMax-rMin)/samples; let i=0; const chunk=Math.max(2,Math.floor(samples/120)); ctx.lineWidth=1.4; ctx.strokeStyle='#0366d6'; ctx.beginPath(); function frame(){ if(local!==lyVer){return;} if(!lyRun){ requestAnimationFrame(frame); return; } const iEnd=Math.min(samples,i+chunk); for(;i<=iEnd;i++){ const r=rMin+i*rStep; let x=0.5; for(let t=0;t<skip;t++) x=tent(x,r); let sum=0; for(let t=0;t<N;t++){ const d = (x<0.5? r : -r); sum += Math.log(Math.abs(d)+1e-12); x = tent(x,r); } const lam=sum/N; const px=toX(r), py=toY(lam); if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } ctx.stroke(); if(i<=samples) requestAnimationFrame(frame); } requestAnimationFrame(frame); }
+  // Bind
+  function bind(){ const sync=(a,b,cb)=>{ a.addEventListener('input',()=>{ b.value=a.value; cb(); }); b.addEventListener('input',()=>{ a.value=b.value; cb(); }); };
+    const r=document.getElementById('r'), rNum=document.getElementById('rNum'); const x0=document.getElementById('x0'), x0Num=document.getElementById('x0Num'); sync(r,rNum,drawCob); sync(x0,x0Num,drawCob); document.getElementById('iters').addEventListener('input',drawCob); document.getElementById('randomize').addEventListener('click',()=>{ const v=Math.random(); x0.value=v.toFixed(3); x0Num.value=v.toFixed(3); drawCob(); }); document.getElementById('clearCob').addEventListener('click',drawCob);
+    ['rMin','rMax','samples','skip','plotN','yMin','yMax'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input',startBif); el.addEventListener('change',startBif); });
+    document.getElementById('bifPause').addEventListener('click',(e)=>{ bifRun=!bifRun; e.target.textContent=bifRun?'Pause':'Resume'; });
+    document.getElementById('bifRestart').addEventListener('click',()=>{ bifRun=true; document.getElementById('bifPause').textContent='Pause'; startBif(); });
+    ['lrMin','lrMax','lsamples','lskip','lN','lyMin','lyMax'].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input',startLy); el.addEventListener('change',startLy); });
+    document.getElementById('lyPause').addEventListener('click',(e)=>{ lyRun=!lyRun; e.target.textContent=lyRun?'Pause':'Resume'; });
+    document.getElementById('lyRestart').addEventListener('click',()=>{ lyRun=true; document.getElementById('lyPause').textContent='Pause'; startLy(); });
+    // tabs
+    const updateNotes=(target)=>{ const notes=[...document.querySelectorAll('.note-bubble')]; const any=notes.some(n=>n.getAttribute('data-tab')===target); notes.forEach(n=>{ const t=n.getAttribute('data-tab'); n.classList.toggle('active', t === (any?target:'default')); }); };
+    document.querySelectorAll('.tabbtn').forEach(btn=>{ btn.addEventListener('click',()=>{ document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const target=btn.getAttribute('data-target'); document.querySelectorAll('.tabview').forEach(p=>p.classList.remove('active')); const panel=document.getElementById(target); if(panel){ panel.classList.add('active'); } updateNotes(target); }); });
+  }
+  window.addEventListener('DOMContentLoaded',()=>{ bind(); drawCob(); setTimeout(startBif,50); setTimeout(startLy,100); });
+  </script>
+</body>
+</html>
+

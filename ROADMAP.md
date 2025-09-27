@@ -57,8 +57,8 @@ Aligned to the themes in Strogatz’s Nonlinear Dynamics and Chaos. Use the chec
 ## One‑Dimensional Maps
 - [x] Logistic cobweb — pages/logistic_map.html
 - [x] Logistic bifurcation diagram — pages/logistic_map.html
-- [ ] Lyapunov exponent vs r — to be added as Logistic tab
-- [ ] Tent map / quadratic family explorer
+- [x] Lyapunov exponent vs r — added as Logistic tab
+- [x] Tent map explorer — pages/tent_map.html
 - [ ] Periodic windows explorer (zoom presets)
 - [ ] Lyapunov overlay on bifurcation — λ(r) sign bands
 - [ ] Feigenbaum constants estimator — δ, α
@@ -71,7 +71,7 @@ Aligned to the themes in Strogatz’s Nonlinear Dynamics and Chaos. Use the chec
 
 ## Strange Attractors
 - [x] Hénon map — 2D dissipative map — pages/henon.html
-- [ ] Rössler system — simple chaotic flow
+- [x] Rössler system — simple chaotic flow — pages/rossler.html
 - [ ] Attractor reconstruction — delay embedding
 - [ ] Forced double‑well oscillator — crises
 

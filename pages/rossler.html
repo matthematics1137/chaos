@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rössler System — Strange Attractor</title>
+  <style>
+    :root { --bg:#f5f5f5; --accent:#0366d6; --muted:#666; }
+    body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; background: var(--bg); }
+    h1 { text-align: center; color: #333; margin-bottom: .25rem; }
+    p { color: #444; line-height: 1.6; }
+    .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
+    .main { grid-area: main; }
+    .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+    .note-top { grid-area: top; } .note-bottom { grid-area: bottom; } .note-left { grid-area: left; } .note-right { grid-area: right; }
+    @media(min-width: 1100px){ .layout { grid-template-columns: 260px 1fr 260px; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; } }
+    .panel { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:10px; }
+    label { font-size:.9rem; color:var(--muted); }
+    input[type="number"]{ width:90px; }
+    input[type="range"]{ width:220px; }
+    .button{ background:var(--accent); border:none; color:#fff; padding:8px 12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+    .button.secondary{ background:#6b7280; }
+    canvas { width:100%; height:auto; background: linear-gradient(180deg,#ffffff,#f7fbff); border:1px solid #ddd; border-radius:6px; }
+    .back { display:inline-block; margin-top:18px; color:var(--accent); text-decoration:none; font-weight:bold; }
+  </style>
+</head>
+<body>
+  <h1>Rössler System</h1>
+  <p>dx/dt = −(y + z), dy/dt = x + a y, dz/dt = b + z(x − c). For a=0.2, b=0.2, c=5.7 the system exhibits a classic strange attractor.</p>
+
+  <div class="layout">
+    <div class="note-bubble note-top">Top notes — Rössler: simple equations, spiral sheet attractor.</div>
+    <div class="note-bubble note-left">Side notes — compare with Lorenz; return maps; Poincaré sections.</div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="controls">
+          <label>a: <input id="a" type="number" step="0.01" value="0.2"/></label>
+          <label>b: <input id="b" type="number" step="0.01" value="0.2"/></label>
+          <label>c: <input id="c" type="number" step="0.1" value="5.7"/></label>
+          <label>dt: <input id="dt" type="number" step="0.0005" value="0.005"/></label>
+          <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="6"/></label>
+          <button class="button" id="toggle">Pause</button>
+          <button class="button secondary" id="reset">Reset</button>
+          <button class="button secondary" id="clear">Clear</button>
+        </div>
+        <canvas id="rossler" width="1000" height="700"></canvas>
+        <p><a class="back" href="../index.html">← Back to Introduction</a></p>
+      </div>
+    </div>
+
+    <div class="note-bubble note-right">Side notes — color by depth; tune (a,b,c) to explore regimes.</div>
+    <div class="note-bubble note-bottom">Bottom notes — add references; suggested parameter sweeps.</div>
+  </div>
+
+  <script>
+  function rk4(stepFn, s, dt){
+    const add=(u,v,k=1)=>u.map((x,i)=>x+k*v[i]);
+    const mul=(v,k)=>v.map(x=>x*k);
+    const k1=stepFn(s), k2=stepFn(add(s,mul(k1,dt/2))), k3=stepFn(add(s,mul(k2,dt/2))), k4=stepFn(add(s,mul(k3,dt)));
+    return add(s, mul([0,1,2].map(i=>k1[i]+2*k2[i]+2*k3[i]+k4[i]), dt/6));
+  }
+  function makeProjector(w,h){
+    let ang=0; const cx=w/2, cy=h/2, sc=14; return {
+      step(){ ang+=0.0025; },
+      project([x,y,z]){
+        const ca=Math.cos(ang), sa=Math.sin(ang);
+        let xr=x*ca - y*sa, yr=x*sa + y*ca, zr=z;
+        const cb=Math.cos(ang*0.6), sb=Math.sin(ang*0.6);
+        let yr2=yr*cb - zr*sb, zr2=yr*sb + zr*cb;
+        return {x: cx + xr*sc, y: cy - yr2*sc, a: Math.max(0.15, Math.min(1, 0.25 + (zr2+20)/40))};
+      }
+    };
+  }
+  (function(){
+    const canvas=document.getElementById('rossler'); const ctx=canvas.getContext('2d');
+    let running=true; let dt=0.005, speed=6; let a=0.2,b=0.2,c=5.7; let s=[0.1,0,0];
+    let proj=makeProjector(canvas.width, canvas.height);
+    function read(){ a=parseFloat(document.getElementById('a').value); b=parseFloat(document.getElementById('b').value); c=parseFloat(document.getElementById('c').value); dt=parseFloat(document.getElementById('dt').value); speed=parseInt(document.getElementById('speed').value,10); }
+    function f([x,y,z]){ return [ -(y+z), x + a*y, b + z*(x - c) ]; }
+    function step(){
+      read();
+      if(running){ for(let i=0;i<speed;i++){ const n=rk4(f,s,dt); const p1=proj.project(s), p2=proj.project(n); const hue=210 + Math.max(-40, Math.min(40, (n[2]-s[2])) )*2; ctx.strokeStyle=`hsla(${hue},80%,45%,${p2.a})`; ctx.lineWidth=1.2; ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); s=n; proj.step(); } }
+      requestAnimationFrame(step);
+    }
+    document.getElementById('toggle').addEventListener('click',(e)=>{ running=!running; e.target.textContent=running?'Pause':'Resume'; });
+    document.getElementById('reset').addEventListener('click',()=>{ document.getElementById('a').value=0.2; document.getElementById('b').value=0.2; document.getElementById('c').value=5.7; document.getElementById('dt').value=0.005; document.getElementById('speed').value=6; s=[0.1,0,0]; ctx.clearRect(0,0,canvas.width,canvas.height); proj=makeProjector(canvas.width, canvas.height); running=true; document.getElementById('toggle').textContent='Pause'; });
+    document.getElementById('clear').addEventListener('click',()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); });
+    step();
+  })();
+  </script>
+</body>
+</html>
+
