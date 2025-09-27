@@ -16,7 +16,8 @@
         p { color: #444; line-height: 1.6; }
         .layout { display: grid; grid-template-areas: 'top' 'main' 'bottom'; gap: 16px; }
         .main { grid-area: main; }
-        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; }
+        .note-bubble { background: #fff8dc; border: 1px solid #f0e6b6; border-radius: 8px; padding: 10px; color: #5b4b20; display: none; }
+        .note-bubble.active { display: block; }
         .note-top { grid-area: top; }
         .note-bottom { grid-area: bottom; }
         .note-left { grid-area: left; }
@@ -53,9 +54,9 @@
     </p>
 
     <div class="layout">
-        <div class="note-bubble note-top">Top notes area — author explanations.</div>
+        <div class="note-bubble note-top active" data-tab="panel-cobweb">Cobweb — author notes for this tab.</div>
 
-        <div class="note-bubble note-left">Side notes — definitions, parameter hints, references.</div>
+        <div class="note-bubble note-left active" data-tab="panel-cobweb">Cobweb — definitions, hints, references.</div>
 
         <div class="main">
         <div class="tabs">
@@ -123,9 +124,18 @@
         </div>
         </div>
 
-        <div class="note-bubble note-right">Side notes — windows of periodicity, Feigenbaum constants.</div>
+        <!-- Tab-specific note bubbles shown depending on active tab -->
+        <!-- Cobweb (active by default) -->
+        <div class="note-bubble note-right active" data-tab="panel-cobweb">Cobweb — connect intersections with y=x to orbits.</div>
+        <div class="note-bubble note-bottom active" data-tab="panel-cobweb">Cobweb — suggested sweeps and reading.</div>
 
-        <div class="note-bubble note-bottom">Bottom notes — takeaways and further reading.</div>
+        <!-- Bifurcation -->
+        <div class="note-bubble note-right" data-tab="panel-bif">Bifurcation — windows, Feigenbaum constants.</div>
+        <div class="note-bubble note-bottom" data-tab="panel-bif">Bifurcation — how to zoom and interpret bands.</div>
+
+        <!-- Lyapunov -->
+        <div class="note-bubble note-right" data-tab="panel-lyap">Lyapunov — λ(r) sign, relation to chaos.</div>
+        <div class="note-bubble note-bottom" data-tab="panel-lyap">Lyapunov — skip transients, averaging details.</div>
     </div>
 
     <a class="back" href="../index.html">← Back to Introduction</a>
@@ -370,6 +380,12 @@
             lyRestart.addEventListener('click', ()=>{ lyRunning = true; lyPause.textContent = 'Pause'; startLyapunov(); });
         }
         // Tabs
+        const updateNotes = (target)=>{
+            document.querySelectorAll('.note-bubble').forEach(nb=>{
+                const t = nb.getAttribute('data-tab');
+                nb.classList.toggle('active', t === target);
+            });
+        };
         document.querySelectorAll('.tabbtn').forEach(btn=>{
             btn.addEventListener('click', ()=>{
                 document.querySelectorAll('.tabbtn').forEach(b=>b.classList.remove('active'));
@@ -378,6 +394,7 @@
                 document.querySelectorAll('.tabview').forEach(p=>p.classList.remove('active'));
                 const panel = document.getElementById(target);
                 if(panel){ panel.classList.add('active'); }
+                updateNotes(target);
             });
         });
         // Reset all controls to default values
