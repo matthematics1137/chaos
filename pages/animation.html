@@ -52,6 +52,15 @@
                     <label>dt: <input id="dt" type="number" step="0.0005" value="0.01"/></label>
                     <label>Speed: <input id="speed" type="range" min="1" max="20" step="1" value="6"/></label>
                     <label>Scale: <input id="scale" type="range" min="1" max="12" step="1" value="6"/></label>
+                    <label>Seeds:
+                        <select id="seeds">
+                            <option value="ring8" selected>Ring ×8</option>
+                            <option value="grid4x3">Grid 4×3</option>
+                            <option value="random10">Random ×10</option>
+                            <option value="none">None</option>
+                        </select>
+                    </label>
+                    <button class="button secondary" id="reseed">Reseed</button>
                     <label>Method:
                         <select id="method">
                             <option value="rk4" selected>RK4</option>
@@ -109,9 +118,7 @@
         let mu = 1.0;
 
         // States
-        let stateRK = [0.5, 0.0];
-        let stateEU = [0.5, 0.0];
-        let haveInit = false;
+        let particles = []; // each: { rk:[x,y], eu:[x,y] }
 
         function readControls(){
             dt = parseFloat(document.getElementById('dt').value);
@@ -143,6 +150,33 @@
             if(system==='vdp') return (s)=>f_vdp(s, mu);
             if(system==='lv')  return (s)=>f_lv(s);
             return (s)=>f_sho(s);
+        }
+
+        function reseed(kind){
+            particles = [];
+            const half = scale/2;
+            if(kind === 'none') return;
+            if(kind === 'ring8'){
+                const r = 0.35*half;
+                const n = 8;
+                for(let i=0;i<n;i++){
+                    const a = (i/n)*Math.PI*2;
+                    const x = r*Math.cos(a);
+                    const y = r*Math.sin(a);
+                    particles.push({ rk:[x,y], eu:[x,y] });
+                }
+            } else if(kind === 'grid4x3'){
+                const xs = [-0.35,-0.15,0.15,0.35].map(t=>t*scale);
+                const ys = [-0.25,0,0.25].map(t=>t*scale);
+                for(const x of xs){ for(const y of ys){ particles.push({ rk:[x,y], eu:[x,y] }); } }
+            } else if(kind === 'random10'){
+                const n = 10;
+                for(let i=0;i<n;i++){
+                    const x = (Math.random()-0.5)*scale*0.9;
+                    const y = (Math.random()-0.5)*scale*0.9;
+                    particles.push({ rk:[x,y], eu:[x,y] });
+                }
+            }
         }
 
         function drawField(){
@@ -180,23 +214,25 @@
 
         function step(){
             readControls();
-            if(running && haveInit){
+            if(running && particles.length>0){
                 const f = pickSystem();
-                for(let i=0;i<speed;i++){
-                    const rkNext = rk4Step(stateRK, dt, f);
-                    const [p1x,p1y] = toCanvas(stateRK);
-                    const [p2x,p2y] = toCanvas(rkNext);
-                    ctx.strokeStyle = 'rgba(3,102,214,0.9)';
-                    ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(p2x,p2y); ctx.stroke();
-                    stateRK = rkNext;
+                for(let sub=0; sub<speed; sub++){
+                    for(const p of particles){
+                        const rkNext = rk4Step(p.rk, dt, f);
+                        const [p1x,p1y] = toCanvas(p.rk);
+                        const [p2x,p2y] = toCanvas(rkNext);
+                        ctx.strokeStyle = 'rgba(3,102,214,0.7)';
+                        ctx.beginPath(); ctx.moveTo(p1x,p1y); ctx.lineTo(p2x,p2y); ctx.stroke();
+                        p.rk = rkNext;
 
-                    if(compare || method==='euler'){
-                        const euNext = eulerStep(stateEU, dt, f);
-                        const [q1x,q1y] = toCanvas(stateEU);
-                        const [q2x,q2y] = toCanvas(euNext);
-                        ctx.strokeStyle = 'rgba(239,68,68,0.9)';
-                        ctx.beginPath(); ctx.moveTo(q1x,q1y); ctx.lineTo(q2x,q2y); ctx.stroke();
-                        stateEU = euNext;
+                        if(compare || method==='euler'){
+                            const euNext = eulerStep(p.eu, dt, f);
+                            const [q1x,q1y] = toCanvas(p.eu);
+                            const [q2x,q2y] = toCanvas(euNext);
+                            ctx.strokeStyle = 'rgba(239,68,68,0.6)';
+                            ctx.beginPath(); ctx.moveTo(q1x,q1y); ctx.lineTo(q2x,q2y); ctx.stroke();
+                            p.eu = euNext;
+                        }
                     }
                 }
             }
@@ -214,26 +250,29 @@
             running = !running; e.target.textContent = running ? 'Pause' : 'Resume';
         });
         document.getElementById('reset').addEventListener('click', ()=>{
-            haveInit = false; clearAll(); drawField();
+            clearAll(); drawField(); reseed(document.getElementById('seeds').value);
         });
         document.getElementById('clear').addEventListener('click', ()=>{
             clearAll(); drawField();
         });
         document.getElementById('system').addEventListener('change', ()=>{
-            haveInit = false; clearAll(); drawField();
+            clearAll(); drawField(); reseed(document.getElementById('seeds').value);
         });
         ['mu','scale','showField'].forEach(id=>{
-            document.getElementById(id).addEventListener('input', ()=>{ clearAll(); drawField(); });
+            document.getElementById(id).addEventListener('input', ()=>{ clearAll(); drawField(); reseed(document.getElementById('seeds').value); });
+        });
+        document.getElementById('reseed').addEventListener('click', ()=>{
+            clearAll(); drawField(); reseed(document.getElementById('seeds').value);
         });
         canvas.addEventListener('click', (ev)=>{
             const rect = canvas.getBoundingClientRect();
             const px = ev.clientX - rect.left; const py = ev.clientY - rect.top;
             const st = toState(px, py);
-            stateRK = st.slice(); stateEU = st.slice(); haveInit = true;
+            particles.push({ rk: st.slice(), eu: st.slice() });
         });
 
         // Initialize
-        clearAll(); drawField(); step();
+        clearAll(); drawField(); reseed('ring8'); step();
     })();
     </script>
 </body>
