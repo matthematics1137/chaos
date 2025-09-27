@@ -1,52 +1,74 @@
-# Chaos Animations
+# Chaos Simulations
 
-This repository contains visualizations and animations of chaotic systems using numerical methods.
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-brightgreen?logo=github)](https://matthematics1137.github.io/chaos/)
+![Last Commit](https://img.shields.io/github/last-commit/matthematics1137/chaos)
+![Made with JavaScript](https://img.shields.io/badge/JS-Vanilla%20ES6%2B-yellow?logo=javascript)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
-## GitHub Pages Setup
+Interactive visualizations of nonlinear dynamics and chaos, inspired by Steven Strogatz’s Nonlinear Dynamics and Chaos. The project showcases approachable, high‑quality simulations that invite exploration and learning.
 
-This project is set up to be published as a GitHub Pages site. Here's how the structure works:
+Live site: https://matthematics1137.github.io/chaos/
 
-### File Structure
+## Highlights
 
-- **`index.html`** (in root): Main landing page that contains links to all animations
-- **`pages/`**: Directory containing all individual animation pages
-  - `animation.html`: Runge-Kutta solution animation
-  - (add more pages here as needed)
-- **`animations/`**: Directory containing animation files (GIFs, etc.)
-- **`functions/`**: Directory containing code/functions used in the project
+- Clean, focused landing page with context and links
+- Four interactive simulations with consistent UX
+- Progressive rendering and rich visuals for clarity
+- Built with lightweight, dependency‑free HTML5 Canvas and vanilla JS
 
-### How GitHub Pages Works with this Repository
+## Simulations
 
-1. GitHub Pages for project sites **requires** an `index.html` file in the root directory.
-2. When visitors go to `https://matthematics1137.github.io/chaos/`, they see the content of the root `index.html`.
-3. The landing page links to individual content pages in the `pages/` directory.
+- Logistic Map — Cobweb + Bifurcation
+  - Cobweb diagram with r/x₀ controls and iteration count
+  - Bifurcation diagram with progressive drawing, y‑zoom, and color modes
+  - Page: `pages/logistic_map.html`
 
-### Adding New Pages
+- Lorenz Attractor — Strange Attractor
+  - RK4 integration with rotating 3D projection and parameter controls
+  - Play/Pause/Reset/Clear; color varies by depth for visual depth cues
+  - Page: `pages/lorenz.html`
 
-To add a new animation or visualization:
+- Double Pendulum — Chaotic Motion
+  - RK4 animation with gradient rods, shaded bobs, and a fading trail
+  - Angle/velocity inputs; Play/Pause/Reset/Clear
+  - Page: `pages/double_pendulum.html`
 
-1. Create a new HTML file in the `pages/` directory (e.g., `pages/new-animation.html`).
-2. Add any associated animation files to the `animations/` directory.
-3. Add a button or link to the new page from the main landing page (`index.html`).
+- Runge–Kutta Playground — Phase Plane
+  - Systems: SHO, Van der Pol (μ), Lotka–Volterra
+  - Methods: RK4, Euler; optional Euler overlay for comparison
+  - Vector field, seed presets (ring/grid/random), click to add seeds
+  - Page: `pages/animation.html`
 
-Example button to add to index.html:
-```html
-<a href="pages/new-animation.html" class="button">New Animation Title</a>
-```
+## Notes and Annotations
 
-### Maintaining the Site
+Each simulation page reserves space for author notes in top, bottom, and side “note bubble” areas. These are regular HTML blocks intended for concise explanations, derivations, or teaching commentary. Edit the placeholder text directly in the HTML files to publish your notes.
 
-- Always keep `index.html` in the root directory
-- Keep all other content pages in the `pages/` directory
-- For organization, store animation files in the `animations/` directory
-- Make sure links between pages use relative paths correctly
+## Project Structure
 
-### Troubleshooting Common Issues
+- `index.html` — Site landing page
+- `pages/` — Individual simulations and animations
+  - `animation.html` — Runge–Kutta playground (interactive)
+  - `logistic_map.html` — Logistic cobweb + bifurcation
+  - `lorenz.html` — Lorenz attractor
+  - `double_pendulum.html` — Double pendulum
+- `animations/` — Static media assets (e.g., legacy GIFs)
+- `functions/` — Supporting scripts and notebooks used to generate assets
 
-- If the site shows a 404 error, ensure `index.html` exists in the root directory
-- If images or animations don't load, check file paths in your HTML
-- Remember that GitHub Pages is case-sensitive, ensure filenames match exactly
+## Roadmap
 
-## Local Development
+- Presets and snapshots for common parameter regimes
+- Export images/animations and shareable links with parameters in the URL
+- Additional systems: Duffing oscillator, Henon map, Standard map
+- Accessibility and mobile interaction improvements
 
-To test the site locally, simply open the `index.html` file in a web browser.
+## Contributing
+
+Contributions are welcome. If you have ideas for clarity, new systems, or UX polish:
+
+- Open an issue describing the change or new visualization
+- Keep pages lightweight, dependency‑free, and consistent with the existing style
+- Prefer progressive rendering and intuitive controls
+
+## Acknowledgments
+
+- Steven Strogatz, Nonlinear Dynamics and Chaos — ongoing inspiration
