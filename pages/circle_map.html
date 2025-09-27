@@ -39,8 +39,10 @@
         <div class="controls">
           <label>Ω: <input id="omega" type="number" step="0.001" value="0.33"/></label>
           <label>K: <input id="K" type="number" step="0.01" value="0.6"/></label>
-          <label>Iter: <input id="N" type="number" step="10" value="400"/></label>
-          <button class="button" id="orbitDraw">Draw</button>
+          <label>Iter: <input id="N" type="number" step="10" value="600"/></label>
+          <label>Speed: <input id="oSpeed" type="range" min="1" max="30" step="1" value="12"/></label>
+          <button class="button" id="orbitPlay">Play</button>
+          <button class="button secondary" id="orbitReset">Reset</button>
           <button class="button secondary" id="orbitClear">Clear</button>
         </div>
         <canvas id="orbit" width="1000" height="360"></canvas>
@@ -67,27 +69,22 @@
   </div>
 
   <script>
-  function circleStep(theta, omega, K){ return (theta + omega - (K/(2*Math.PI))*Math.sin(2*Math.PI*theta)) % 1; }
-  function drawOrbit(){
-    const canvas=document.getElementById('orbit'); const ctx=canvas.getContext('2d');
-    const omega=parseFloat(document.getElementById('omega').value); const K=parseFloat(document.getElementById('K').value); const N=parseInt(document.getElementById('N').value,10);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    // Left: unit circle points
-    const cx=200, cy=180, R=120; ctx.strokeStyle='#999'; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
-    // Right: theta vs n plot
-    const plotX0=360, plotY0=20, plotW=canvas.width-380, plotH=canvas.height-40; ctx.strokeStyle='#eee'; ctx.strokeRect(plotX0,plotY0,plotW,plotH);
-    let th=0.1; let unwrapped=0.1; ctx.strokeStyle='#0366d6'; ctx.lineWidth=1.4; ctx.beginPath();
-    for(let n=0;n<N;n++){
-      // circle points
-      const x=cx+R*Math.cos(2*Math.PI*th), y=cy+R*Math.sin(2*Math.PI*th); ctx.fillStyle='rgba(3,102,214,0.8)'; ctx.beginPath(); ctx.arc(x,y,2.2,0,Math.PI*2); ctx.fill();
-      // unwrapped theta
-      const px=plotX0 + (n/(N-1))*plotW; const py=plotY0 + (1-( (unwrapped % 1) ))*plotH; if(n===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-      const next = circleStep(th, omega, K);
-      // unwrap: add nearest increment
-      let d = next - th; if(d>0.5) d-=1; if(d<-0.5) d+=1; unwrapped += d; th = next;
-    }
-    ctx.stroke();
+  function circleStep(theta, omega, K){
+    const v = theta + omega - (K/(2*Math.PI))*Math.sin(2*Math.PI*theta);
+    return ((v % 1) + 1) % 1; // keep in [0,1)
   }
+  (function(){
+    const canvas=document.getElementById('orbit'); const ctx=canvas.getContext('2d');
+    const cx=200, cy=180, R=120; const plotX0=360, plotY0=20, plotW=canvas.width-380, plotH=canvas.height-40;
+    let playing=false, version=0; let th=0.1, unwrapped=0.1, n=0;
+    function clearOrbit(){ ctx.clearRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke(); ctx.strokeStyle='#eee'; ctx.strokeRect(plotX0,plotY0,plotW,plotH); }
+    function startOrbit(){ const my=++version; playing=true; n=0; th=0.1; unwrapped=0.1; clearOrbit(); step(); function step(){ if(my!==version) return; if(!playing){ requestAnimationFrame(step); return; } const omega=parseFloat(document.getElementById('omega').value); const K=parseFloat(document.getElementById('K').value); const N=parseInt(document.getElementById('N').value,10); const speed=parseInt(document.getElementById('oSpeed').value,10); ctx.strokeStyle='#0366d6'; ctx.lineWidth=1.2; ctx.beginPath(); for(let s=0;s<speed && n<N; s++, n++){ const x=cx+R*Math.cos(2*Math.PI*th), y=cy+R*Math.sin(2*Math.PI*th); ctx.fillStyle='rgba(3,102,214,0.9)'; ctx.beginPath(); ctx.arc(x,y,2.0,0,Math.PI*2); ctx.fill(); const px=plotX0 + (n/(N-1))*plotW; const py=plotY0 + (1-((unwrapped%1)))*plotH; if(n===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); const next=circleStep(th,omega,K); let d=next-th; if(d>0.5) d-=1; if(d<-0.5) d+=1; unwrapped+=d; th=next; } ctx.stroke(); if(n<N){ requestAnimationFrame(step); } }
+    }
+    document.getElementById('orbitPlay').addEventListener('click', (e)=>{ if(!playing){ e.target.textContent='Pause'; if(n===0 || n>=parseInt(document.getElementById('N').value,10)) startOrbit(); else { playing=true; } } else { playing=false; e.target.textContent='Play'; } });
+    document.getElementById('orbitReset').addEventListener('click', ()=>{ playing=false; document.getElementById('orbitPlay').textContent='Play'; th=0.1; unwrapped=0.1; n=0; clearOrbit(); });
+    document.getElementById('orbitClear').addEventListener('click', ()=>{ clearOrbit(); });
+    clearOrbit();
+  })();
   function renderTongues(){
     const canvas=document.getElementById('tongue'); const ctx=canvas.getContext('2d');
     const oMin=parseFloat(document.getElementById('oMin').value), oMax=parseFloat(document.getElementById('oMax').value), kMax=parseFloat(document.getElementById('kMax').value); const grid=parseInt(document.getElementById('grid').value,10); const tIter=parseInt(document.getElementById('tIter').value,10);
@@ -126,4 +123,3 @@
   </script>
 </body>
 </html>
-
