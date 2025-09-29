@@ -46,8 +46,40 @@
           <button class="button secondary" id="clear">Clear</button>
         </div>
         <canvas id="hopf" width="1000" height="700"></canvas>
-        <div style="font-size:.9rem;color:#666;margin-top:6px;">Brusselator: x' = A − (B+1)x + x²y, y' = Bx − x²y</div>
+        <div style="font-size:.9rem;color:#666;margin-top:6px;">
+          Brusselator: x' = A − (B+1)x + x²y, y' = Bx − x²y · Fixed point (x*,y*)=(A, B/A). Hopf threshold B<sub>H</sub> = 1 + A².
+          <span id="eigInfo" style="margin-left:8px; color:#374151;"></span>
+        </div>
         <p><a class="back" href="../index.html">← Back to Introduction</a></p>
+      </div>
+
+      <div class="panel" style="margin-top:16px;">
+        <h3 style="margin:6px 0 8px 0">Time Series</h3>
+        <div class="controls">
+          <label>Show: 
+            <select id="tsVar"><option value="x" selected>x(t)</option><option value="y">y(t)</option></select>
+          </label>
+          <label>Length: <input id="tsLen" type="number" step="100" value="2000"/></label>
+          <button class="button" id="tsRestart">Restart</button>
+          <button class="button secondary" id="tsClear">Clear</button>
+        </div>
+        <canvas id="ts" width="1000" height="220"></canvas>
+      </div>
+
+      <div class="panel" style="margin-top:16px;">
+        <h3 style="margin:6px 0 8px 0">Hopf Bifurcation: Amplitude vs B</h3>
+        <div class="controls">
+          <label>A: <input id="bA" type="number" step="0.1" value="1.0"/></label>
+          <label>B min: <input id="bMin" type="number" step="0.1" value="1.0"/></label>
+          <label>B max: <input id="bMax" type="number" step="0.1" value="3.0"/></label>
+          <label>Samples: <input id="bSamples" type="number" step="10" value="80"/></label>
+          <label>Transient iters: <input id="bSkip" type="number" step="100" value="2000"/></label>
+          <label>Measure iters: <input id="bIter" type="number" step="100" value="2000"/></label>
+          <button class="button" id="bRun">Run Sweep</button>
+          <button class="button secondary" id="bClear">Clear</button>
+        </div>
+        <canvas id="bifamp" width="1000" height="260"></canvas>
+        <div class="caption">For each B in [Bmin, Bmax] at fixed A, integrate, discard transients, then plot amplitude of x(t) (max−min)/2. Expect emergence near B = 1 + A².</div>
       </div>
     </div>
 
@@ -79,7 +111,17 @@
       ctx.strokeStyle='rgba(239,68,68,0.7)'; ctx.beginPath(); first=true; for(let i=0;i<=800;i++){ const x=xMin+i*(xMax-xMin)/800; if(Math.abs(x)<0.05) { first=true; continue; } const y=B/x; if(y<-3||y>3) { first=true; continue; } const [px,py]=toCanvas([x,y]); if(first){ctx.moveTo(px,py); first=false;} else {ctx.lineTo(px,py);} } ctx.stroke();
     }
     function reseed(kind){ particles=[]; const n=8; const r=1.0; if(kind==='none') return; if(kind==='ring8'){ for(let i=0;i<n;i++){ const a=2*Math.PI*i/n; particles.push({p:[r*Math.cos(a), r*Math.sin(a)], hue:(i/n)*330}); } } else if(kind==='grid4x3'){ const xs=[-1.5,-0.5,0.5,1.5], ys=[-1,0,1]; let k=0; for(const x of xs){ for(const y of ys){ particles.push({p:[x,y], hue:(k++/12)*330}); } } } }
-    function step(){ read(); if(running && particles.length){ const f=(s)=>f_bruss(s,A,B); for(let sub=0;sub<speed;sub++){ for(const q of particles){ const next=rk4Step2(q.p,dt,f); const [x1,y1]=toCanvas(q.p), [x2,y2]=toCanvas(next); ctx.strokeStyle=`hsla(${q.hue|0},80%,45%,0.9)`; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); q.p=next; } } } ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.strokeRect(40,20,canvas.width-60,canvas.height-60); drawNullclines(); requestAnimationFrame(step); }
+    function updateEigInfo(){
+      const tau = (B - 1) - (A*A); // trace = (B-1) + (-A^2)
+      const Delta = A*A; // determinant
+      const disc = tau*tau - 4*Delta;
+      const re = (tau/2).toFixed(3);
+      const type = disc<0 ? 'complex' : 'real';
+      const Bh = 1 + A*A;
+      const rel = (B>=Bh? 'above':'below');
+      document.getElementById('eigInfo').textContent = `trace=${(tau).toFixed(3)}, det=${Delta.toFixed(3)} · eigenvalues: ${type}, Re(λ)≈${re} · B_H=1+A²=${Bh.toFixed(3)} (${rel} threshold)`;
+    }
+    function step(){ read(); updateEigInfo(); if(running && particles.length){ const f=(s)=>f_bruss(s,A,B); for(let sub=0;sub<speed;sub++){ for(const q of particles){ const next=rk4Step2(q.p,dt,f); const [x1,y1]=toCanvas(q.p), [x2,y2]=toCanvas(next); ctx.strokeStyle=`hsla(${q.hue|0},80%,45%,0.9)`; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); q.p=next; } } } ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.strokeStyle='#999'; ctx.strokeRect(40,20,canvas.width-60,canvas.height-60); drawNullclines(); requestAnimationFrame(step); }
     // events
     document.getElementById('toggle').addEventListener('click',(e)=>{ running=!running; e.target.textContent=running?'Pause':'Resume'; });
     document.getElementById('reset').addEventListener('click',()=>{ document.getElementById('A').value=1.0; document.getElementById('B').value=2.0; document.getElementById('dt').value=0.01; document.getElementById('speed').value=8; clearAll(); drawNullclines(); reseed(document.getElementById('seeds').value); running=true; document.getElementById('toggle').textContent='Pause'; });
@@ -90,6 +132,36 @@
     clearAll(); drawNullclines(); reseed('ring8'); step();
   })();
   </script>
+
+  <script>
+  // Time series and Hopf amplitude sweep
+  (function(){
+    // Time series
+    const cts = document.getElementById('ts'); if(!cts) return; const xctx = cts.getContext('2d');
+    let tsRunning=false, tsVersion=0; let tsIdx=0; let tsA=1.0, tsB=2.0, tsdt=0.01;
+    function f([x,y],A,B){ return [ A - (B+1)*x + x*x*y, B*x - x*x*y ]; }
+    function rk4(s,dt,A,B){ const add=(u,v,k=1)=>[u[0]+k*v[0], u[1]+k*v[1]]; const mul=(v,k)=>[v[0]*k,v[1]*k]; const k1=f(s,A,B), k2=f(add(s,mul(k1,dt/2),1),A,B), k3=f(add(s,mul(k2,dt/2),1),A,B), k4=f(add(s,mul(k3,dt),1),A,B); return add(s,[(k1[0]+2*k2[0]+2*k3[0]+k4[0])*dt/6, (k1[1]+2*k2[1]+2*k3[1]+k4[1])*dt/6]); }
+    function readTS(){ tsA=parseFloat(document.getElementById('A').value); tsB=parseFloat(document.getElementById('B').value); tsdt=parseFloat(document.getElementById('dt').value); }
+    function clearTS(){ xctx.clearRect(0,0,cts.width,cts.height); xctx.strokeStyle='#ddd'; xctx.strokeRect(40,20,cts.width-60,cts.height-60); xctx.fillStyle='#374151'; xctx.fillText('Time', 46, 34); }
+    function startTS(){ const my=++tsVersion; tsRunning=true; tsIdx=0; clearTS(); readTS(); let s=[0.1,0.0]; const N=parseInt(document.getElementById('tsLen').value,10); const varSel=document.getElementById('tsVar').value; const toX=k=> 40 + (k/(N-1))*(cts.width-60); const rangeY=6, y0=0; function norm(v){ return (v - y0 + rangeY/2)/rangeY; } xctx.strokeStyle='#0366d6'; xctx.beginPath(); function frame(){ if(my!==tsVersion) return; if(!tsRunning){ requestAnimationFrame(frame); return; } const stepN=20; for(let j=0;j<stepN && tsIdx<N; j++, tsIdx++){ const nxt=rk4(s,tsdt,tsA,tsB); const v=(varSel==='x'? s[0]: s[1]); const px=toX(tsIdx), py= 20 + (1 - Math.max(0,Math.min(1,norm(v))))*(cts.height-60); if(tsIdx===0) xctx.moveTo(px,py); else xctx.lineTo(px,py); s=nxt; } xctx.stroke(); if(tsIdx<N) requestAnimationFrame(frame); }
+    requestAnimationFrame(frame); }
+    document.getElementById('tsRestart').addEventListener('click', ()=>{ tsRunning=false; document.getElementById('tsLen').value=2000; clearTS(); startTS(); });
+    document.getElementById('tsClear').addEventListener('click', clearTS);
+    clearTS();
+
+    // Amplitude sweep
+    const cb = document.getElementById('bifamp'); const bctx = cb.getContext('2d');
+    function clearAmp(){ bctx.clearRect(0,0,cb.width,cb.height); bctx.strokeStyle='#999'; bctx.strokeRect(40,20,cb.width-60,cb.height-60); }
+    function runSweep(){ clearAmp(); const A=parseFloat(document.getElementById('bA').value); const Bmin=parseFloat(document.getElementById('bMin').value); const Bmax=parseFloat(document.getElementById('bMax').value); const S=parseInt(document.getElementById('bSamples').value,10); const skip=parseInt(document.getElementById('bSkip').value,10); const iters=parseInt(document.getElementById('bIter').value,10); const toX=B=> 40 + ((B-Bmin)/(Bmax-Bmin))*(cb.width-60); const toY=amp=> 20 + (1 - Math.min(1,amp/3.0))*(cb.height-60); // scale amplitudes
+      let i=0; function frame(){ for(let c=0;c<3 && i<=S;c++,i++){ const B = Bmin + (i/S)*(Bmax-Bmin); let s=[0.1,0.0]; for(let t=0;t<skip;t++){ s=rk4(s,0.01,A,B); } let xmin=Infinity,xmax=-Infinity; for(let t=0;t<iters;t++){ s=rk4(s,0.01,A,B); xmin=Math.min(xmin,s[0]); xmax=Math.max(xmax,s[0]); } const amp=(xmax-xmin)/2; const px=toX(B), py=toY(amp); bctx.fillStyle='#0366d6'; bctx.fillRect(px,py,2,2); } if(i<=S) requestAnimationFrame(frame); }
+      // Mark Hopf threshold
+      const Bh = 1 + A*A; if(Bh>=Bmin && Bh<=Bmax){ bctx.strokeStyle='rgba(239,68,68,0.8)'; bctx.beginPath(); const x=toX(Bh); bctx.moveTo(x,20); bctx.lineTo(x,cb.height-40); bctx.stroke(); }
+      requestAnimationFrame(frame);
+    }
+    document.getElementById('bRun').addEventListener('click', runSweep);
+    document.getElementById('bClear').addEventListener('click', clearAmp);
+    clearAmp();
+  })();
+  </script>
 </body>
 </html>
-
