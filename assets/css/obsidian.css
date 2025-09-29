@@ -1,0 +1,36 @@
+/* === IMPORT CUSTOM FONT FOR HEADINGS AND BASE === */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+/* === CYBERPUNK MUTED NEON COLOR PALETTE === */
+:root {
+  --cyber-red-1:     #ff5c5c;
+  --cyber-red-2:     #e14b4b;
+  --cyber-red-3:     #c0392b;
+  --cyber-red-4:     #8a2c2c;
+  --cyber-purple:    #9b59b6;
+  --cyber-pink:      #d26ecf;
+  --cyber-cyan:      #4fb0c6;
+  --cyber-blue:      #5dade2;
+  --cyber-green:     #1abc9c;
+  --latex-orange:    #f39c12;
+  --text-soft:       #d0d0d0;
+}
+
+/* Base font */
+body { font-family: 'Share Tech Mono', monospace; color: var(--text-soft); }
+
+/* Apply Obsidian-like heading colors also to plain HTML */
+.markdown-preview-view h1, h1 { color: var(--cyber-red-1); }
+.markdown-preview-view h2, h2 { color: var(--cyber-red-2); }
+.markdown-preview-view h3, h3 { color: var(--cyber-red-3); }
+.markdown-preview-view h4, h4 { color: var(--cyber-red-4); }
+.markdown-preview-view h5, .markdown-preview-view h6, h5, h6 { color: var(--cyber-purple); }
+
+/* Bullet marker colors by depth */
+.markdown-preview-view ul > li::marker, ul > li::marker { color: var(--cyber-purple); }
+.markdown-preview-view ul ul > li::marker, ul ul > li::marker { color: var(--cyber-blue); }
+.markdown-preview-view ul ul ul > li::marker, ul ul ul > li::marker { color: var(--cyber-green); }
+.markdown-preview-view ul ul ul ul > li::marker, ul ul ul ul > li::marker { color: var(--cyber-pink); }
+
+/* Inline math accent */
+.markdown-preview-view .math.math-inline { color: var(--latex-orange) !important; font-weight: bold; }

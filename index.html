@@ -11,16 +11,17 @@
             margin: 0 auto;
             padding: 2rem;
             text-align: center;
-            background-color: #f5f5f5;
+            background-color: var(--bg);
+            color: var(--fg);
         }
         h1 {
-            color: #333;
+            color: inherit;
         }
-        p { color: #444; line-height: 1.6; }
+        p { color: var(--muted); line-height: 1.6; }
         .button {
             display: inline-block;
-            background-color: #0366d6;
-            color: white;
+            background-color: var(--accent);
+            color: #fff;
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 4px;
@@ -29,11 +30,12 @@
             transition: background-color 0.3s ease;
         }
         .button:hover {
-            background-color: #024ea0;
+            background-color: var(--accent-hover);
         }
         .buttons { margin-top: 16px; }
         .tagline { font-size: 1.1rem; }
     </style>
+    <link rel="stylesheet" href="assets/css/theme.css" />
 </head>
 <body>
     <h1>Chaos Simulations</h1>

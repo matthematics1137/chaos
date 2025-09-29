@@ -1,0 +1,42 @@
+@import url('obsidian.css');
+
+:root {
+  /* Light mode defaults */
+  --bg: #f7f7f8;
+  --fg: #1b1b1d;
+  --muted: #444;
+  --accent: #0b66d6;
+  --accent-hover: #0a53ad;
+  --card: #ffffff;
+  --border: #e6e6e9;
+  --text-soft: #222;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0b0e;
+    --fg: #d0d0d0;
+    --muted: #b9b9b9;
+    --accent: var(--cyber-purple);
+    --accent-hover: #7d46a0;
+    --card: #121218;
+    --border: #2a2a33;
+    --text-soft: #d0d0d0;
+  }
+}
+
+/* Base layout that most pages already use */
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.button { background: var(--accent); }
+.button:hover { background: var(--accent-hover); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
